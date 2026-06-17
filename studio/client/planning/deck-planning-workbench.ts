@@ -243,6 +243,219 @@ export namespace StudioClientDeckPlanningWorkbench {
     };
   }
 
+  function formatDeckActionLabel(action: unknown): string {
+    const labels: Record<string, string> = {
+      insert: "Insert",
+      keep: "Keep",
+      move: "Move",
+      remove: "Archive",
+      replace: "Replace",
+      "retitle-and-move": "Retitle + move",
+      "retitle-and-replace": "Retitle + replace",
+      retitle: "Retitle",
+      shared: "Shared"
+    };
+    return labels[String(action)] || String(action);
+  }
+
+  function groupDeckPlanSteps(plan: DeckStructurePlanStep[] = []): DeckPlanStepGroup[] {
+    const grouped = new Map<string, DeckPlanStepGroup>();
+
+    plan.forEach((slide: DeckStructurePlanStep) => {
+      const action = String(slide && slide.action ? slide.action : "keep");
+      if (action === "keep") {
+        return;
+      }
+
+      const label = formatDeckActionLabel(action);
+      const current = grouped.get(action) || {
+        action,
+        items: [],
+        label
+      };
+      current.items.push(slide);
+      grouped.set(action, current);
+    });
+
+    return Array.from(grouped.values()).sort((left, right) => left.label.localeCompare(right.label));
+  }
+
+  function countChangedSlides(planStats: PlanStats): number {
+    return [
+      planStats.inserted || 0,
+      planStats.replaced || 0,
+      planStats.archived || 0,
+      planStats.moved || 0,
+      planStats.retitled || 0
+    ].reduce((total, count) => total + count, 0);
+  }
+
+  function classifyDeckDiffScale(totalImpact: number, changedSlides: number, fileCount: number): string {
+    if (totalImpact >= 12 || changedSlides >= 8 || fileCount >= 6) {
+      return "Large";
+    }
+
+    if (totalImpact >= 5 || changedSlides >= 3 || fileCount >= 3) {
+      return "Medium";
+    }
+
+    return "Small";
+  }
+
+  function buildDeckDiffMetrics(
+    changedSlides: number,
+    fileCount: number,
+    sharedChanges: number,
+    beforeSlides: number,
+    afterSlides: number
+  ): DeckDiffMetric[] {
+    return [
+      { label: "slide actions", value: changedSlides },
+      { label: "files", value: fileCount },
+      { label: "shared", value: sharedChanges },
+      { label: "slide delta", signed: true, value: afterSlides - beforeSlides }
+    ];
+  }
+
+  function buildDeckDiffFocusItems(planStats: PlanStats, sharedChanges: number): Array<{ action: string; count: number }> {
+    return [
+      { action: "insert", count: planStats.inserted || 0 },
+      { action: "replace", count: planStats.replaced || 0 },
+      { action: "remove", count: planStats.archived || 0 },
+      { action: "move", count: planStats.moved || 0 },
+      { action: "retitle", count: planStats.retitled || 0 },
+      { action: "shared", count: sharedChanges }
+    ].filter((item) => item.count > 0);
+  }
+
+  function buildDeckDiffCues(scale: string, planStats: PlanStats, sharedChanges: number, fileCount: number): string[] {
+    const cues = [];
+
+    if (scale === "Large") {
+      cues.push("Review the strip, affected previews, and file targets before applying.");
+    } else if (scale === "Medium") {
+      cues.push("Check the action map and changed file list before applying.");
+    } else {
+      cues.push("A focused preview pass should be enough for this candidate.");
+    }
+
+    if ((planStats.archived || 0) > 0) {
+      cues.push("Archived slides are preserved by guardrails; confirm the narrative still has their claims.");
+    }
+
+    if (sharedChanges > 0) {
+      cues.push("Shared deck settings change with this candidate unless you clear that apply option.");
+    }
+
+    if (fileCount >= 4) {
+      cues.push("Multiple slide files change; run checks after applying.");
+    }
+
+    return cues;
+  }
+
+  function buildDeckActionMap(plan: DeckStructurePlanStep[]): DeckDiffSupport["actionMap"] {
+    return plan
+      .filter((slide: DeckStructurePlanStep) => slide && slide.action && slide.action !== "keep")
+      .slice(0, 14)
+      .map((slide: DeckStructurePlanStep) => ({
+        action: String(slide.action || "keep"),
+        currentIndex: slide.currentIndex,
+        proposedIndex: slide.proposedIndex,
+        title: slide.proposedTitle || slide.currentTitle || "Untitled"
+      }));
+  }
+
+  function buildDeckDiffSupport(details: DeckDiffDetails): DeckDiffSupport {
+    const planStats = details.planStats || {};
+    const diff = asDeckStructureDiff(details.diff);
+    const diffCounts = diff.counts || {};
+    const diffFiles = Array.isArray(details.diffFiles) ? details.diffFiles : [];
+    const deckChanges = Array.isArray(details.deckChanges) ? details.deckChanges : [];
+    const plan = Array.isArray(details.plan) ? details.plan : [];
+    const currentSequence = Array.isArray(details.currentSequence) ? details.currentSequence : [];
+    const proposedSequence = Array.isArray(details.proposedSequence) ? details.proposedSequence : [];
+    const changedSlides = countChangedSlides(planStats);
+    const sharedChanges = (planStats.shared || 0) || deckChanges.length || (diffCounts.shared || 0);
+    const totalImpact = changedSlides + sharedChanges + diffFiles.length;
+    const beforeSlides = (diffCounts.beforeSlides || currentSequence.length || 0);
+    const afterSlides = (diffCounts.afterSlides || proposedSequence.length || 0);
+    const scale = classifyDeckDiffScale(totalImpact, changedSlides, diffFiles.length);
+    const changedPlanSteps = plan.filter((slide: DeckStructurePlanStep) => slide && slide.action && slide.action !== "keep");
+    const actionMap = buildDeckActionMap(plan);
+    const overflow = Math.max(0, changedPlanSteps.length - actionMap.length);
+
+    return {
+      actionMap,
+      cues: buildDeckDiffCues(scale, planStats, sharedChanges, diffFiles.length),
+      focusItems: buildDeckDiffFocusItems(planStats, sharedChanges),
+      metrics: buildDeckDiffMetrics(changedSlides, diffFiles.length, sharedChanges, beforeSlides, afterSlides),
+      overflow,
+      scale
+    };
+  }
+
+  function renderDeckDiffSupport(
+    createDomElement: DeckPlanningWorkbenchOptions["createDomElement"],
+    support: DeckDiffSupport
+  ): HTMLElement {
+    const formatMetricValue = (metric: DeckDiffMetric): string => metric.signed && metric.value > 0
+      ? `+${metric.value}`
+      : String(metric.value);
+
+    const children: HTMLElement[] = [
+      createDomElement("div", { className: "compare-decision-head" }, [
+        createDomElement("div", {}, [
+          createDomElement("p", { className: "eyebrow", text: "Diff impact" }),
+          createDomElement("strong", { text: `${support.scale} deck change` })
+        ]),
+        createDomElement("div", { className: "compare-decision-metrics" }, support.metrics.map((metric) => createDomElement("span", {}, [
+          createDomElement("strong", { text: formatMetricValue(metric) }),
+          ` ${metric.label}`
+        ])))
+      ])
+    ];
+
+    if (support.focusItems.length) {
+      children.push(createDomElement("div", {
+        attributes: { "aria-label": "Deck diff focus" },
+        className: "compare-decision-focus"
+      }, support.focusItems.map((item) => createDomElement("span", { className: "compare-decision-chip" }, [
+        createDomElement("strong", { text: formatDeckActionLabel(item.action) }),
+        ` ${item.count}`
+      ]))));
+    }
+
+    if (support.actionMap.length) {
+      const actionNodes = support.actionMap.map((item) => {
+        const indexLabel = Number.isFinite(item.proposedIndex)
+          ? item.proposedIndex
+          : (Number.isFinite(item.currentIndex) ? item.currentIndex : "?");
+        return createDomElement("span", {
+          attributes: { title: item.title },
+          className: "deck-diff-node",
+          dataset: { action: item.action }
+        }, [
+          createDomElement("strong", { text: indexLabel }),
+          ` ${formatDeckActionLabel(item.action)}`
+        ]);
+      });
+      if (support.overflow) {
+        actionNodes.push(createDomElement("span", { className: "deck-diff-node overflow" }, [
+          createDomElement("strong", { text: `+${support.overflow}` }),
+          " more"
+        ]));
+      }
+      children.push(createDomElement("div", {
+        attributes: { "aria-label": "Deck action map" },
+        className: "deck-diff-map"
+      }, actionNodes));
+    }
+
+    children.push(createDomElement("div", { className: "compare-decision-cues" }, support.cues.map((cue) => createDomElement("p", { text: cue }))));
+    return createDomElement("section", { className: "deck-diff-panel" }, children);
+  }
+
   export function createDeckPlanningWorkbench(deps: DeckPlanningWorkbenchOptions) {
     const {
       createDomElement,
@@ -264,183 +477,6 @@ export namespace StudioClientDeckPlanningWorkbench {
       syncSelectedSlideToActiveList,
       windowRef
     } = deps;
-
-    function formatDeckActionLabel(action: unknown): string {
-      const labels: Record<string, string> = {
-        insert: "Insert",
-        keep: "Keep",
-        move: "Move",
-        remove: "Archive",
-        replace: "Replace",
-        "retitle-and-move": "Retitle + move",
-        "retitle-and-replace": "Retitle + replace",
-        retitle: "Retitle",
-        shared: "Shared"
-      };
-      return labels[String(action)] || String(action);
-    }
-
-    function groupDeckPlanSteps(plan: DeckStructurePlanStep[] = []): DeckPlanStepGroup[] {
-      const grouped = new Map<string, DeckPlanStepGroup>();
-
-      plan.forEach((slide: DeckStructurePlanStep) => {
-        const action = String(slide && slide.action ? slide.action : "keep");
-        if (action === "keep") {
-          return;
-        }
-    
-        const label = formatDeckActionLabel(action);
-        const current = grouped.get(action) || {
-          action,
-          items: [],
-          label
-        };
-        current.items.push(slide);
-        grouped.set(action, current);
-      });
-    
-      return Array.from(grouped.values()).sort((left, right) => left.label.localeCompare(right.label));
-    }
-    
-    function buildDeckDiffSupport(details: DeckDiffDetails): DeckDiffSupport {
-      const planStats = details.planStats || {};
-      const diff = asDeckStructureDiff(details.diff);
-      const diffCounts = diff.counts || {};
-      const diffFiles = Array.isArray(details.diffFiles) ? details.diffFiles : [];
-      const deckChanges = Array.isArray(details.deckChanges) ? details.deckChanges : [];
-      const plan = Array.isArray(details.plan) ? details.plan : [];
-      const currentSequence = Array.isArray(details.currentSequence) ? details.currentSequence : [];
-      const proposedSequence = Array.isArray(details.proposedSequence) ? details.proposedSequence : [];
-      const changedSlides = [
-        planStats.inserted || 0,
-        planStats.replaced || 0,
-        planStats.archived || 0,
-        planStats.moved || 0,
-        planStats.retitled || 0
-      ].reduce((total, count) => total + count, 0);
-      const sharedChanges = (planStats.shared || 0) || deckChanges.length || (diffCounts.shared || 0);
-      const totalImpact = changedSlides + sharedChanges + diffFiles.length;
-      const beforeSlides = (diffCounts.beforeSlides || currentSequence.length || 0);
-      const afterSlides = (diffCounts.afterSlides || proposedSequence.length || 0);
-      const scale = totalImpact >= 12 || changedSlides >= 8 || diffFiles.length >= 6
-        ? "Large"
-        : totalImpact >= 5 || changedSlides >= 3 || diffFiles.length >= 3
-          ? "Medium"
-          : "Small";
-      const metrics = [
-        { label: "slide actions", value: changedSlides },
-        { label: "files", value: diffFiles.length },
-        { label: "shared", value: sharedChanges },
-        { label: "slide delta", signed: true, value: afterSlides - beforeSlides }
-      ];
-      const focusItems = [
-        { action: "insert", count: planStats.inserted || 0 },
-        { action: "replace", count: planStats.replaced || 0 },
-        { action: "remove", count: planStats.archived || 0 },
-        { action: "move", count: planStats.moved || 0 },
-        { action: "retitle", count: planStats.retitled || 0 },
-        { action: "shared", count: sharedChanges }
-      ].filter((item) => item.count > 0);
-      const cues = [];
-    
-      if (scale === "Large") {
-        cues.push("Review the strip, affected previews, and file targets before applying.");
-      } else if (scale === "Medium") {
-        cues.push("Check the action map and changed file list before applying.");
-      } else {
-        cues.push("A focused preview pass should be enough for this candidate.");
-      }
-    
-      if ((planStats.archived || 0) > 0) {
-        cues.push("Archived slides are preserved by guardrails; confirm the narrative still has their claims.");
-      }
-    
-      if (sharedChanges > 0) {
-        cues.push("Shared deck settings change with this candidate unless you clear that apply option.");
-      }
-    
-      if (diffFiles.length >= 4) {
-        cues.push("Multiple slide files change; run checks after applying.");
-      }
-    
-      const changedPlanSteps = plan.filter((slide: DeckStructurePlanStep) => slide && slide.action && slide.action !== "keep");
-      const actionMap = changedPlanSteps
-        .slice(0, 14)
-        .map((slide: DeckStructurePlanStep) => ({
-          action: String(slide.action || "keep"),
-          currentIndex: slide.currentIndex,
-          proposedIndex: slide.proposedIndex,
-          title: slide.proposedTitle || slide.currentTitle || "Untitled"
-        }));
-      const overflow = Math.max(0, changedPlanSteps.length - actionMap.length);
-    
-      return {
-        actionMap,
-        cues,
-        focusItems,
-        metrics,
-        overflow,
-        scale
-      };
-    }
-    
-    function renderDeckDiffSupport(support: DeckDiffSupport): HTMLElement {
-      const formatMetricValue = (metric: DeckDiffMetric): string => metric.signed && metric.value > 0
-        ? `+${metric.value}`
-        : String(metric.value);
-
-      const children: HTMLElement[] = [
-        createDomElement("div", { className: "compare-decision-head" }, [
-          createDomElement("div", {}, [
-            createDomElement("p", { className: "eyebrow", text: "Diff impact" }),
-            createDomElement("strong", { text: `${support.scale} deck change` })
-          ]),
-          createDomElement("div", { className: "compare-decision-metrics" }, support.metrics.map((metric) => createDomElement("span", {}, [
-            createDomElement("strong", { text: formatMetricValue(metric) }),
-            ` ${metric.label}`
-          ])))
-        ])
-      ];
-
-      if (support.focusItems.length) {
-        children.push(createDomElement("div", {
-          attributes: { "aria-label": "Deck diff focus" },
-          className: "compare-decision-focus"
-        }, support.focusItems.map((item) => createDomElement("span", { className: "compare-decision-chip" }, [
-          createDomElement("strong", { text: formatDeckActionLabel(item.action) }),
-          ` ${item.count}`
-        ]))));
-      }
-
-      if (support.actionMap.length) {
-        const actionNodes = support.actionMap.map((item) => {
-          const indexLabel = Number.isFinite(item.proposedIndex)
-            ? item.proposedIndex
-            : (Number.isFinite(item.currentIndex) ? item.currentIndex : "?");
-          return createDomElement("span", {
-            attributes: { title: item.title },
-            className: "deck-diff-node",
-            dataset: { action: item.action }
-          }, [
-            createDomElement("strong", { text: indexLabel }),
-            ` ${formatDeckActionLabel(item.action)}`
-          ]);
-        });
-        if (support.overflow) {
-          actionNodes.push(createDomElement("span", { className: "deck-diff-node overflow" }, [
-            createDomElement("strong", { text: `+${support.overflow}` }),
-            " more"
-          ]));
-        }
-        children.push(createDomElement("div", {
-          attributes: { "aria-label": "Deck action map" },
-          className: "deck-diff-map"
-        }, actionNodes));
-      }
-
-      children.push(createDomElement("div", { className: "compare-decision-cues" }, support.cues.map((cue) => createDomElement("p", { text: cue }))));
-      return createDomElement("section", { className: "deck-diff-panel" }, children);
-    }
     
     function renderDeckLengthPlan(): void {
       const activeCount = state.slides.length;
@@ -757,7 +793,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           const selectedDetails = createDomElement("div");
           selectedDetails.append(planDetails);
           const selectedPrefix = [
-            renderDeckDiffSupport(deckDiffSupport),
+            renderDeckDiffSupport(createDomElement, deckDiffSupport),
             stripCompare,
             previewHintList,
             selectedOutline,
@@ -1126,6 +1162,30 @@ export namespace StudioClientDeckPlanningWorkbench {
       state.activeOutlinePlanId = typeof payload.activeOutlinePlanId === "string" ? payload.activeOutlinePlanId : state.activeOutlinePlanId;
       state.outlinePlans = payload.outlinePlans || state.outlinePlans;
     }
+
+    async function requestOutlinePlanMutation(params: {
+      body: JsonRecord;
+      button?: HTMLButtonElement | null;
+      busyLabel: string;
+      status: (payload: OutlinePlanPayload) => string;
+      url: string;
+    }): Promise<OutlinePlanPayload> {
+      const done = params.button ? setBusy(params.button, params.busyLabel) : null;
+      try {
+        const payload = await request<OutlinePlanPayload>(params.url, {
+          method: "POST",
+          body: JSON.stringify(params.body)
+        });
+        applyOutlinePlanPayload(payload);
+        renderOutlinePlans();
+        elements.operationStatus.textContent = params.status(payload);
+        return payload;
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
     
     async function generateOutlinePlan(): Promise<void> {
       const done = setBusy(elements.generateOutlinePlanButton, "Generating...");
@@ -1249,20 +1309,13 @@ export namespace StudioClientDeckPlanningWorkbench {
     }
 
     async function setActiveOutlinePlan(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
-      const done = button ? setBusy(button, "Setting...") : null;
-      try {
-        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/active", {
-          method: "POST",
-          body: JSON.stringify({ planId: plan.id })
-        });
-        applyOutlinePlanPayload(payload);
-        renderOutlinePlans();
-        elements.operationStatus.textContent = `Active flow is now "${plan.name || plan.id}".`;
-      } finally {
-        if (done) {
-          done();
-        }
-      }
+      await requestOutlinePlanMutation({
+        body: { planId: plan.id },
+        busyLabel: "Setting...",
+        button,
+        status: () => `Active flow is now "${plan.name || plan.id}".`,
+        url: "/api/v1/outline-plans/active"
+      });
     }
     
     async function stageOutlinePlanCreation(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
@@ -1323,24 +1376,17 @@ export namespace StudioClientDeckPlanningWorkbench {
       if (!name) {
         return;
       }
-    
-      const done = button ? setBusy(button, "Duplicating...") : null;
-      try {
-        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/duplicate", {
-          method: "POST",
-          body: JSON.stringify({
-            name,
-            planId: plan.id
-          })
-        });
-        applyOutlinePlanPayload(payload);
-        renderOutlinePlans();
-        elements.operationStatus.textContent = `Duplicated outline plan "${payload.outlinePlan?.name || "Outline plan"}".`;
-      } finally {
-        if (done) {
-          done();
-        }
-      }
+
+      await requestOutlinePlanMutation({
+        body: {
+          name,
+          planId: plan.id
+        },
+        busyLabel: "Duplicating...",
+        button,
+        status: (payload) => `Duplicated outline plan "${payload.outlinePlan?.name || "Outline plan"}".`,
+        url: "/api/v1/outline-plans/duplicate"
+      });
     }
     
     async function archiveOutlinePlan(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
@@ -1349,20 +1395,13 @@ export namespace StudioClientDeckPlanningWorkbench {
         return;
       }
     
-      const done = button ? setBusy(button, "Archiving...") : null;
-      try {
-        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/archive", {
-          method: "POST",
-          body: JSON.stringify({ planId: plan.id })
-        });
-        applyOutlinePlanPayload(payload);
-        renderOutlinePlans();
-        elements.operationStatus.textContent = `Archived outline plan "${plan.name || plan.id}".`;
-      } finally {
-        if (done) {
-          done();
-        }
-      }
+      await requestOutlinePlanMutation({
+        body: { planId: plan.id },
+        busyLabel: "Archiving...",
+        button,
+        status: () => `Archived outline plan "${plan.name || plan.id}".`,
+        url: "/api/v1/outline-plans/archive"
+      });
     }
     
     async function deleteOutlinePlan(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
@@ -1371,20 +1410,13 @@ export namespace StudioClientDeckPlanningWorkbench {
         return;
       }
     
-      const done = button ? setBusy(button, "Deleting...") : null;
-      try {
-        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/delete", {
-          method: "POST",
-          body: JSON.stringify({ planId: plan.id })
-        });
-        applyOutlinePlanPayload(payload);
-        renderOutlinePlans();
-        elements.operationStatus.textContent = `Deleted outline plan "${plan.name || plan.id}".`;
-      } finally {
-        if (done) {
-          done();
-        }
-      }
+      await requestOutlinePlanMutation({
+        body: { planId: plan.id },
+        busyLabel: "Deleting...",
+        button,
+        status: () => `Deleted outline plan "${plan.name || plan.id}".`,
+        url: "/api/v1/outline-plans/delete"
+      });
     }
     
     async function addSource(): Promise<void> {
@@ -1449,14 +1481,14 @@ export namespace StudioClientDeckPlanningWorkbench {
     }
     
     function applyDeckLengthPayload(payload: DeckLengthPayload): void {
-      state.context = payload.context || state.context;
+      state.context = payload.context ? payload.context : state.context;
       if (payload.domPreview) {
         setDomPreviewState(payload);
       }
-      state.previews = payload.previews || state.previews;
-      state.runtime = payload.runtime || state.runtime;
+      state.previews = payload.previews ? payload.previews : state.previews;
+      state.runtime = payload.runtime ? payload.runtime : state.runtime;
       state.skippedSlides = payload.skippedSlides || [];
-      state.slides = payload.slides || state.slides;
+      state.slides = payload.slides ? payload.slides : state.slides;
       state.deckLengthPlan = null;
       syncSelectedSlideToActiveList();
       renderDeckFields();
