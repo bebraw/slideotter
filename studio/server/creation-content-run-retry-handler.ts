@@ -3,6 +3,7 @@ import {
 } from "./services/content-run-artifacts.ts";
 import { assertGeneratedSlideFitsDom } from "./content-run-slide-validation.ts";
 import { contentRunVisibleErrorMessage } from "./content-run-visible-errors.ts";
+import { createContentRunProgressHandlers } from "./creation-content-run-progress.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/materials.ts";
 import {
@@ -27,7 +28,6 @@ import type {
   DeckPlanSlide,
   GeneratedPartialSlidePayload,
   GenerationDraftFields,
-  GenerationProgressPayload,
   JsonObject,
   MaterialPayload,
   ServerRequest,
@@ -537,38 +537,14 @@ function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetr
           return Boolean(latestRun && latestRun.id === runId && latestRun.stopRequested === true);
         };
 
-        const setSlideState = (index: number, next: ContentRunSlide): unknown => {
-          const latest = getPresentationCreationDraft();
-          const latestRun = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
-          if (!latestRun || latestRun.id !== runId || !Array.isArray(latestRun.slides)) {
-            return null;
-          }
-
-          const slides = latestRun.slides.filter(isContentRunSlide).map((slide, idx) => idx === index ? { ...slide, ...next } : slide);
-          const completed = slides.filter((slide) => slide.status === "complete").length;
-          return contentRunState({
-            completed,
-            slides
-          });
-        };
-
-        const reportProgressWithRun = (progress: GenerationProgressPayload): void => {
-          const slideIndex = Number(progress.slideIndex);
-          if (
-            progress
-            && progress.stage === "drafting-slide"
-            && Number.isFinite(slideIndex)
-            && slideIndex >= 1
-            && slideIndex <= slideCount
-          ) {
-            setSlideState(slideIndex - 1, { status: "generating", error: null });
-          }
-
-          reportProgress({
-            ...progress,
-            stage: typeof progress.stage === "string" ? progress.stage : "running"
-          });
-        };
+        const { reportProgressWithRun, setSlideState } = createContentRunProgressHandlers({
+          contentRunState,
+          isContentRunSlide,
+          isContentRunState,
+          reportProgress,
+          runId,
+          slideCount
+        });
         draftFields.onProgress = reportProgressWithRun;
 
         const generated = await generatePresentationFromDeckPlanIncremental(draftFields, deckPlan, {}, {
