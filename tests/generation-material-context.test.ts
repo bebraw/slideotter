@@ -18,7 +18,7 @@ const { createSource,
   getGenerationSourceContext,
   listSources,
   retrieveSourceSnippets } = require("../studio/server/services/sources.ts");
-const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
+const { getPresentationPaths } = require("../studio/server/services/presentation-paths.ts");
 
 type JsonRecord = Record<string, unknown>;
 

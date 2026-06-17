@@ -1,9 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import {
-  getActivePresentationId,
-  getPresentationPaths
-} from "./presentations.ts";
+import { getActivePresentationId } from "./presentations.ts";
+import { getPresentationPaths } from "./presentation-paths.ts";
 import { sanitizeSvg } from "./custom-svg-sanitizer.ts";
 import { createFileSlug } from "./compact-text.ts";
 import {

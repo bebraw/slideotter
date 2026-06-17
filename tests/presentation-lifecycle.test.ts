@@ -25,7 +25,7 @@ const {
   reorderActiveSlides
 } = require("../studio/server/services/slides.ts");
 const { getDeckContext } = require("../studio/server/services/state.ts");
-const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
+const { getPresentationPaths } = require("../studio/server/services/presentation-paths.ts");
 const { readActiveDeckContext } = require("../studio/server/services/active-deck-context.ts");
 const { removeAllowedPath } = require("../studio/server/services/write-boundary.ts");
 

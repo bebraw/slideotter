@@ -253,11 +253,8 @@ function densityInstruction(fields: JsonObject, phase: "outline" | "draft"): str
     : "Information density: spacious. Draft sparse projected copy: one main idea per slide, very short card bodies, and no extra subclaims beyond what the approved outline requires.";
 }
 
-function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): StructuredPromptRequest {
-  const { compactJson, deckPlan, fields, materialPromptText, memoryPromptText, singleSlideContext, slideCount, slideTarget, sourcePromptText, suppliedUrls = [] } = context;
-
-  return {
-    developerPrompt: [
+function buildSlidePlanDeveloperPrompt(fields: JsonObject): string {
+  return [
       "You turn an approved presentation outline into complete structured slide content for a local deck studio.",
       "Return JSON only and stay within the provided schema.",
       languageInstruction(fields),
@@ -296,56 +293,75 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "When choosing or describing visual treatment, preserve WCAG AA contrast: normal text at least 4.5:1, large display text at least 3:1, and non-text progress indicators distinguishable from their tracks.",
       "Make the deck useful as a first real draft for someone who gave the brief.",
       "Keep each slide concise enough for projected presentation content."
-    ].join("\n"),
-    maxOutputTokens: Math.max(5200, slideCount * 900),
-    promptContext: {
-      materialPromptText: materialPromptText || "",
-      memoryPromptText: memoryPromptText || "",
-      sourcePromptText: sourcePromptText || "",
-      workflowName: slideTarget ? "staged-slide-drafting" : "staged-deck-drafting"
-    },
-    schema: createPlanSchema(slideCount),
-    schemaName: "initial_presentation_plan",
-    userPrompt: [
+    ].join("\n");
+}
+
+function buildSlideTargetPromptLines(slideTarget: SlideTarget | null | undefined): string[] {
+  if (!slideTarget) {
+    return ["", "", "", "", "", "", "", "", ""];
+  }
+
+  return [
+    `Target outline slide: ${slideTarget.slideNumber} of ${slideTarget.slideCount}.`,
+    slideTarget.title ? `Target slide title: ${slideTarget.title}` : "",
+    slideTarget.role ? `Target slide role in the approved outline: ${slideTarget.role}` : "",
+    slideTarget.type ? `Target slide type in the approved outline: ${slideTarget.type}` : "",
+    slideTarget.intent ? `Target slide intent: ${slideTarget.intent}` : "",
+    slideTarget.coverIntent ? `Target cover intent: ${slideTarget.coverIntent}` : "",
+    slideTarget.keyMessage ? `Target slide key message: ${slideTarget.keyMessage}` : "",
+    slideTarget.value ? `Target slide value: ${slideTarget.value}` : "",
+    "Return only the target slide. Use the complete approved deck plan for sequence context, but do not draft neighboring slides."
+  ];
+}
+
+function buildSlideBriefPromptLines(fields: JsonObject, suppliedUrls: string[]): string[] {
+  return [
+    `Title: ${fields.title || "Untitled presentation"}`,
+    `Audience: ${fields.audience || "Not specified"}`,
+    `Tone: ${fields.tone || "Direct and practical"}`,
+    `Objective: ${fields.objective || "Not specified"}`,
+    `Constraints and opinions: ${fields.constraints || "Not specified"}`,
+    `Information density: ${presentationDensity(fields)}`,
+    `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
+    `Theme brief: ${fields.themeBrief || "Not specified"}`,
+    `Sourcing style: ${fields.sourcingStyle || "none"}`,
+    `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`
+  ];
+}
+
+function buildRetrievedContextPromptLines(options: {
+  fields: JsonObject;
+  materialPromptText?: unknown;
+  memoryPromptText?: unknown;
+  sourcePromptText?: unknown;
+  translationScope: "outline" | "slide";
+}): string[] {
+  const language = requestedLanguage(options.fields);
+  const translationLine = language
+    ? `When source snippets are not in ${language}, use the facts but translate or summarize every visible ${options.translationScope} field into ${language}.`
+    : "";
+
+  return [
+    "Retrieved source snippets:",
+    String(options.sourcePromptText || "None"),
+    translationLine,
+    "",
+    "Retrieved memory snippets:",
+    String(options.memoryPromptText || "None"),
+    "",
+    "Available image materials:",
+    String(options.materialPromptText || "None")
+  ];
+}
+
+function buildSlidePlanUserPrompt(context: SlidePlanPromptContext): string {
+  const { compactJson, deckPlan, fields, materialPromptText, memoryPromptText, singleSlideContext, slideCount, slideTarget, sourcePromptText, suppliedUrls = [] } = context;
+
+  return [
       `Generate exactly ${slideCount} slides for a new presentation.`,
-      slideTarget
-        ? `Target outline slide: ${slideTarget.slideNumber} of ${slideTarget.slideCount}.`
-        : "",
-      slideTarget && slideTarget.title
-        ? `Target slide title: ${slideTarget.title}`
-        : "",
-      slideTarget && slideTarget.role
-        ? `Target slide role in the approved outline: ${slideTarget.role}`
-        : "",
-      slideTarget && slideTarget.type
-        ? `Target slide type in the approved outline: ${slideTarget.type}`
-        : "",
-      slideTarget && slideTarget.intent
-        ? `Target slide intent: ${slideTarget.intent}`
-        : "",
-      slideTarget && slideTarget.coverIntent
-        ? `Target cover intent: ${slideTarget.coverIntent}`
-        : "",
-      slideTarget && slideTarget.keyMessage
-        ? `Target slide key message: ${slideTarget.keyMessage}`
-        : "",
-      slideTarget && slideTarget.value
-        ? `Target slide value: ${slideTarget.value}`
-        : "",
-      slideTarget
-        ? "Return only the target slide. Use the complete approved deck plan for sequence context, but do not draft neighboring slides."
-        : "",
+      ...buildSlideTargetPromptLines(slideTarget),
       "",
-      `Title: ${fields.title || "Untitled presentation"}`,
-      `Audience: ${fields.audience || "Not specified"}`,
-      `Tone: ${fields.tone || "Direct and practical"}`,
-      `Objective: ${fields.objective || "Not specified"}`,
-      `Constraints and opinions: ${fields.constraints || "Not specified"}`,
-      `Information density: ${presentationDensity(fields)}`,
-      `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
-      `Theme brief: ${fields.themeBrief || "Not specified"}`,
-      `Sourcing style: ${fields.sourcingStyle || "none"}`,
-      `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
+      ...buildSlideBriefPromptLines(fields, suppliedUrls),
       "",
       "Approved deck plan:",
       compactJson(deckPlan),
@@ -357,60 +373,42 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
           ].join("\n")
         : "",
       "",
-      "Retrieved source snippets:",
-      sourcePromptText || "None",
-      requestedLanguage(fields)
-        ? `When source snippets are not in ${requestedLanguage(fields)}, use the facts but translate or summarize every visible slide field into ${requestedLanguage(fields)}.`
-        : "",
-      "",
-      "Retrieved memory snippets:",
-      memoryPromptText || "None",
-      "",
-      "Available image materials:",
-      materialPromptText || "None",
+      ...buildRetrievedContextPromptLines({
+        fields,
+        materialPromptText,
+        memoryPromptText,
+        sourcePromptText,
+        translationScope: "slide"
+      }),
       "",
       "Use the first slide as the opening frame and the last slide as the closing handoff when there is more than one slide.",
       "Keep all visible slide text in the same language as the requested deck unless the user asks for a mixed-language result."
-    ].join("\n")
+    ].join("\n");
+}
+
+function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): StructuredPromptRequest {
+  const { fields, materialPromptText, memoryPromptText, slideCount, slideTarget, sourcePromptText } = context;
+
+  return {
+    developerPrompt: buildSlidePlanDeveloperPrompt(fields),
+    maxOutputTokens: Math.max(5200, slideCount * 900),
+    promptContext: {
+      materialPromptText: materialPromptText || "",
+      memoryPromptText: memoryPromptText || "",
+      sourcePromptText: sourcePromptText || "",
+      workflowName: slideTarget ? "staged-slide-drafting" : "staged-deck-drafting"
+    },
+    schema: createPlanSchema(slideCount),
+    schemaName: "initial_presentation_plan",
+    userPrompt: buildSlidePlanUserPrompt(context)
   };
 }
 
 function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredPromptRequest {
-  const { compactJson, fields, lockedOutlineSlides = [], materialPromptText, memoryPromptText, slideCount, sourcePromptText, suppliedUrls = [] } = context;
+  const { fields, lockedOutlineSlides = [], materialPromptText, memoryPromptText, slideCount, sourcePromptText } = context;
 
   return {
-    developerPrompt: [
-      "You plan a presentation before slide drafting.",
-      "Return JSON only and stay within the provided schema.",
-      languageInstruction(
-        fields,
-        "user-facing titles, intents, key messages, value fields, source needs, visual needs, narrative arc, thesis, and outline text"
-      ),
-      "Do not translate a non-English brief into English unless the user explicitly asks for English.",
-      densityInstruction(fields, "outline"),
-      "Set the JSON language field to the exact requested target language when one is provided.",
-      "Return a concise presentation title. If the user did not provide one, infer it from the objective, sources, and constraints.",
-      "Create a distinct narrative arc with exactly the requested number of slides.",
-      "Each slide must have a unique intent and key message.",
-      "For the first opening slide, set coverIntent to statement, identity, agenda, proof, or chapter. Use agenda only when two or three short cards improve the opening.",
-      "Each slide value must state what the audience gains, decides, or can do after that slide.",
-      "The first slide must be role opening. The last slide must be role handoff when there is more than one slide.",
-      slideCount >= 12
-        ? "For longer decks, use role divider at major section boundaries when it improves pacing and keeps the main path readable."
-        : "",
-      lockedOutlineSlides.length
-        ? "Some outline slides are locked by the user. Preserve their positions and plan surrounding slides around them without replacing their meaning."
-        : "",
-      "Use sourceNeed and visualNeed to say what each slide needs from sources or image materials.",
-      "When a slide would benefit from a recognizable product or company mark, name it explicitly in visualNeed as '<Brand> logo' so the user can approve a logo import before drafting.",
-      "Set type to the intended slide family: cover, toc, content, summary, divider, quote, photo, or photoGrid.",
-      "Use type photoGrid only when the slide should compare or group two to three available image materials; otherwise use photo or content for image-backed slides.",
-      sourcingInstruction(fields.sourcingStyle),
-      "Use retrieved memory snippets as persistent authoring context when they are provided, while respecting their status and confidence.",
-      "Call out any theme or visual needs in a way that can preserve WCAG AA contrast against the slide background.",
-      "Do not use placeholders, dummy metrics, markdown fences, generic filler, or ellipses.",
-      "Do not invent academic papers, citations, or source URLs."
-    ].filter(Boolean).join("\n"),
+    developerPrompt: buildDeckPlanDeveloperPrompt(fields, slideCount, lockedOutlineSlides),
     maxOutputTokens: Math.max(1400, slideCount * 180),
     promptContext: {
       materialPromptText: materialPromptText || "",
@@ -420,38 +418,75 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
     },
     schema: createDeckPlanSchema(slideCount),
     schemaName: "initial_presentation_deck_plan",
-    userPrompt: [
-      `Plan exactly ${slideCount} slides for a new presentation.`,
-      "",
-      `User-supplied title: ${fields.title || "None; infer a concise title from the brief."}`,
-      `Audience: ${fields.audience || "Not specified"}`,
-      `Tone: ${fields.tone || "Direct and practical"}`,
-      `Objective: ${fields.objective || "Not specified"}`,
-      `Constraints and opinions: ${fields.constraints || "Not specified"}`,
-      `Information density: ${presentationDensity(fields)}`,
-      `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
-      `Theme brief: ${fields.themeBrief || "Not specified"}`,
-      `Sourcing style: ${fields.sourcingStyle || "none"}`,
-      `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
-      "",
-      "Retrieved source snippets:",
-      sourcePromptText || "None",
-      requestedLanguage(fields)
-        ? `When source snippets are not in ${requestedLanguage(fields)}, use the facts but translate or summarize every visible outline field into ${requestedLanguage(fields)}.`
-        : "",
-      "",
-      "Retrieved memory snippets:",
-      memoryPromptText || "None",
-      "",
-      "Available image materials:",
-      materialPromptText || "None",
-      "",
-      "Locked outline slides:",
-      lockedOutlineSlides.length ? compactJson(lockedOutlineSlides) : "None",
-      "",
-      "Return only the high-level plan. Do not draft slide cards, guardrails, resources, or notes in this phase."
-    ].join("\n")
+    userPrompt: buildDeckPlanUserPrompt(context)
   };
+}
+
+function buildDeckPlanDeveloperPrompt(fields: JsonObject, slideCount: number, lockedOutlineSlides: unknown[]): string {
+  return [
+    "You plan a presentation before slide drafting.",
+    "Return JSON only and stay within the provided schema.",
+    languageInstruction(
+      fields,
+      "user-facing titles, intents, key messages, value fields, source needs, visual needs, narrative arc, thesis, and outline text"
+    ),
+    "Do not translate a non-English brief into English unless the user explicitly asks for English.",
+    densityInstruction(fields, "outline"),
+    "Set the JSON language field to the exact requested target language when one is provided.",
+    "Return a concise presentation title. If the user did not provide one, infer it from the objective, sources, and constraints.",
+    "Create a distinct narrative arc with exactly the requested number of slides.",
+    "Each slide must have a unique intent and key message.",
+    "For the first opening slide, set coverIntent to statement, identity, agenda, proof, or chapter. Use agenda only when two or three short cards improve the opening.",
+    "Each slide value must state what the audience gains, decides, or can do after that slide.",
+    "The first slide must be role opening. The last slide must be role handoff when there is more than one slide.",
+    slideCount >= 12
+      ? "For longer decks, use role divider at major section boundaries when it improves pacing and keeps the main path readable."
+      : "",
+    lockedOutlineSlides.length
+      ? "Some outline slides are locked by the user. Preserve their positions and plan surrounding slides around them without replacing their meaning."
+      : "",
+    "Use sourceNeed and visualNeed to say what each slide needs from sources or image materials.",
+    "When a slide would benefit from a recognizable product or company mark, name it explicitly in visualNeed as '<Brand> logo' so the user can approve a logo import before drafting.",
+    "Set type to the intended slide family: cover, toc, content, summary, divider, quote, photo, or photoGrid.",
+    "Use type photoGrid only when the slide should compare or group two to three available image materials; otherwise use photo or content for image-backed slides.",
+    sourcingInstruction(fields.sourcingStyle),
+    "Use retrieved memory snippets as persistent authoring context when they are provided, while respecting their status and confidence.",
+    "Call out any theme or visual needs in a way that can preserve WCAG AA contrast against the slide background.",
+    "Do not use placeholders, dummy metrics, markdown fences, generic filler, or ellipses.",
+    "Do not invent academic papers, citations, or source URLs."
+  ].filter(Boolean).join("\n");
+}
+
+function buildDeckPlanUserPrompt(context: DeckPlanPromptContext): string {
+  const { compactJson, fields, lockedOutlineSlides = [], materialPromptText, memoryPromptText, slideCount, sourcePromptText, suppliedUrls = [] } = context;
+
+  return [
+    `Plan exactly ${slideCount} slides for a new presentation.`,
+    "",
+    `User-supplied title: ${fields.title || "None; infer a concise title from the brief."}`,
+    `Audience: ${fields.audience || "Not specified"}`,
+    `Tone: ${fields.tone || "Direct and practical"}`,
+    `Objective: ${fields.objective || "Not specified"}`,
+    `Constraints and opinions: ${fields.constraints || "Not specified"}`,
+    `Information density: ${presentationDensity(fields)}`,
+    `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
+    `Theme brief: ${fields.themeBrief || "Not specified"}`,
+    `Sourcing style: ${fields.sourcingStyle || "none"}`,
+    `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
+    "",
+    ...buildRetrievedContextPromptLines({
+      fields,
+      materialPromptText,
+      memoryPromptText,
+      sourcePromptText,
+      translationScope: "outline"
+    }),
+    "",
+    "Locked outline slides:",
+    lockedOutlineSlides.length ? compactJson(lockedOutlineSlides) : "None",
+    "",
+    "Return only the high-level plan. Do not draft slide cards, guardrails, resources, or notes in this phase."
+  ].join("\n");
 }
 
 function buildDeckPlanRepairPromptRequest(context: DeckPlanRepairPromptContext): StructuredPromptRequest {

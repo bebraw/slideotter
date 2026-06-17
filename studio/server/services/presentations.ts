@@ -252,15 +252,27 @@ function createInitialSlideSpecs(deck: JsonObject): JsonObject[] {
   ];
 }
 
-function createDefaultDeckContext(fields: JsonObject = {}): JsonObject {
+function createDeckLengthProfile(fields: JsonObject): JsonObject | null {
   const lengthProfile = asJsonObject(fields.lengthProfile);
-  const validationSettingsFields = asJsonObject(fields.validationSettings);
   const timestamp = lengthProfile.updatedAt
     ? lengthProfile.updatedAt
     : new Date().toISOString();
   const targetSlideCount = normalizeTargetSlideCount(
     fields.targetSlideCount ?? fields.targetCount ?? lengthProfile.targetCount
   );
+
+  return targetSlideCount
+    ? {
+        activeCount: Number.isFinite(Number(fields.activeCount)) ? Number(fields.activeCount) : 3,
+        skippedCount: Number.isFinite(Number(fields.skippedCount)) ? Number(fields.skippedCount) : 0,
+        targetCount: targetSlideCount,
+        updatedAt: timestamp
+      }
+    : null;
+}
+
+function createDefaultDeckContext(fields: JsonObject = {}): JsonObject {
+  const validationSettingsFields = asJsonObject(fields.validationSettings);
   const visualTheme = normalizeVisualTheme({
     ...defaultVisualTheme,
     ...asJsonObject(fields.visualTheme)
@@ -291,14 +303,7 @@ function createDefaultDeckContext(fields: JsonObject = {}): JsonObject {
       }),
       validationSettings,
       visualTheme,
-      lengthProfile: targetSlideCount
-        ? {
-            activeCount: Number.isFinite(Number(fields.activeCount)) ? Number(fields.activeCount) : 3,
-            skippedCount: Number.isFinite(Number(fields.skippedCount)) ? Number(fields.skippedCount) : 0,
-            targetCount: targetSlideCount,
-            updatedAt: timestamp
-          }
-        : null,
+      lengthProfile: createDeckLengthProfile(fields),
       themeBrief: fields.themeBrief || "",
       outline: fields.outline || "",
       structureLabel: "",

@@ -110,13 +110,8 @@ function publishWorkflowEvent(event: WorkflowEvent): void {
   });
 }
 
-function recordWorkflowEvent(workflow: WorkflowEvent | null): void {
-  if (!workflow || !workflow.status) {
-    return;
-  }
-
-  const previous = runtimeState.workflowHistory[runtimeState.workflowHistory.length - 1] || null;
-  const nextEvent = {
+function normalizeWorkflowEvent(workflow: WorkflowEvent): WorkflowEvent {
+  return {
     actionId: typeof workflow.actionId === "string" ? workflow.actionId : "",
     candidateId: typeof workflow.candidateId === "string" ? workflow.candidateId : "",
     demo: workflow.demo === true,
@@ -128,11 +123,13 @@ function recordWorkflowEvent(workflow: WorkflowEvent | null): void {
     resourceHref: typeof workflow.resourceHref === "string" ? workflow.resourceHref : "",
     slideId: workflow.slideId || null,
     stage: workflow.stage || "",
-    status: workflow.status,
+    status: workflow.status || "",
     updatedAt: workflow.updatedAt || new Date().toISOString()
   };
+}
 
-  if (
+function isDuplicateWorkflowEvent(previous: WorkflowEvent | null, nextEvent: WorkflowEvent): boolean {
+  return Boolean(
     previous
     && previous.message === nextEvent.message
     && previous.operation === nextEvent.operation
@@ -145,7 +142,18 @@ function recordWorkflowEvent(workflow: WorkflowEvent | null): void {
     && previous.slideId === nextEvent.slideId
     && previous.stage === nextEvent.stage
     && previous.status === nextEvent.status
-  ) {
+  );
+}
+
+function recordWorkflowEvent(workflow: WorkflowEvent | null): void {
+  if (!workflow || !workflow.status) {
+    return;
+  }
+
+  const previous = runtimeState.workflowHistory[runtimeState.workflowHistory.length - 1] || null;
+  const nextEvent = normalizeWorkflowEvent(workflow);
+
+  if (isDuplicateWorkflowEvent(previous, nextEvent)) {
     return;
   }
 

@@ -30,7 +30,7 @@ const {
   deriveAutomaticImageSearchTerms,
   searchCreationImagesAsMaterials
 } = require("../studio/server/creation-image-search.ts");
-const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
+const { getPresentationPaths } = require("../studio/server/services/presentation-paths.ts");
 
 type JsonRecord = Record<string, unknown>;
 

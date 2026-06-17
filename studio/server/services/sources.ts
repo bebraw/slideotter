@@ -708,22 +708,42 @@ function createLanguageUrlCandidates(inputUrl: string, language: string): string
   return Array.from(new Set([url.toString(), normalized]));
 }
 
-async function fetchSourceTextFromUrl(inputUrl: string, options: FetchSourceTextOptions = {}): Promise<FetchedSourceText> {
-  const language = normalizeFetchLanguage(options.language);
+function buildFetchHeaders(language: string): Record<string, string> {
   const acceptLanguage = language
     ? language === "en" ? "en, *;q=0.1" : `${language}, en;q=0.8, *;q=0.1`
     : "";
+
+  return {
+    Accept: "text/html,text/plain,application/json;q=0.8,*/*;q=0.2",
+    ...(acceptLanguage ? { "Accept-Language": acceptLanguage } : {}),
+    "User-Agent": "slideotter-source-fetch/1.0"
+  };
+}
+
+function validateSourceResponse(response: Response): string {
+  assertFetchableUrl(response.url);
+  const contentLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > maxFetchBytes) {
+    throw new Error(`Source URL response is too large. Limit is ${maxFetchBytes} bytes.`);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType && !acceptedFetchContentTypes.some((accepted) => contentType.toLowerCase().startsWith(accepted))) {
+    throw new Error(`Source URL content type is not supported: ${contentType}`);
+  }
+
+  return contentType;
+}
+
+async function fetchSourceTextFromUrl(inputUrl: string, options: FetchSourceTextOptions = {}): Promise<FetchedSourceText> {
+  const language = normalizeFetchLanguage(options.language);
   const urls = createLanguageUrlCandidates(inputUrl, language).map((candidateUrl) => assertFetchableUrl(candidateUrl));
   let lastError: unknown = null;
 
   for (const url of urls) {
     try {
       const response = await fetch(url, {
-        headers: {
-          Accept: "text/html,text/plain,application/json;q=0.8,*/*;q=0.2",
-          ...(acceptLanguage ? { "Accept-Language": acceptLanguage } : {}),
-          "User-Agent": "slideotter-source-fetch/1.0"
-        },
+        headers: buildFetchHeaders(language),
         signal: AbortSignal.timeout(10000)
       });
 
@@ -731,17 +751,7 @@ async function fetchSourceTextFromUrl(inputUrl: string, options: FetchSourceText
         throw new Error(`Source URL request failed with status ${response.status}`);
       }
 
-      assertFetchableUrl(response.url);
-      const contentLength = Number(response.headers.get("content-length"));
-      if (Number.isFinite(contentLength) && contentLength > maxFetchBytes) {
-        throw new Error(`Source URL response is too large. Limit is ${maxFetchBytes} bytes.`);
-      }
-
-      const contentType = response.headers.get("content-type") || "";
-      if (contentType && !acceptedFetchContentTypes.some((accepted) => contentType.toLowerCase().startsWith(accepted))) {
-        throw new Error(`Source URL content type is not supported: ${contentType}`);
-      }
-
+      const contentType = validateSourceResponse(response);
       const raw = await response.text();
       if (raw.length > maxFetchBytes) {
         throw new Error(`Source URL response is too large. Limit is ${maxFetchBytes} characters.`);

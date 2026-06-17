@@ -148,6 +148,17 @@ function addBodySlotsForSlideSpec(
   slideSpec: SlideSpec,
   pushSlot: (id: string, role: string, options?: SlotOptions) => void
 ): boolean {
+  if (addTextBodySlots(slideSpec, pushSlot) || addMediaBodySlots(slideSpec, pushSlot)) {
+    return true;
+  }
+
+  return slideSpec.type === "divider";
+}
+
+function addTextBodySlots(
+  slideSpec: SlideSpec,
+  pushSlot: (id: string, role: string, options?: SlotOptions) => void
+): boolean {
   switch (slideSpec.type) {
     case "cover":
       pushSlot("summary", "summary", { maxLines: 3 });
@@ -175,6 +186,18 @@ function addBodySlotsForSlideSpec(
       pushSlot("bullets", "body", { maxLines: 6 });
       pushSlot("resources", "resources", { maxLines: 4 });
       break;
+    default:
+      return false;
+  }
+
+  return true;
+}
+
+function addMediaBodySlots(
+  slideSpec: SlideSpec,
+  pushSlot: (id: string, role: string, options?: SlotOptions) => void
+): boolean {
+  switch (slideSpec.type) {
     case "quote":
       pushSlot("quote", "quote", { maxLines: 5 });
       if (slideSpec.attribution) {
@@ -189,8 +212,6 @@ function addBodySlotsForSlideSpec(
       if (slideSpec.caption || asJsonObject(slideSpec.media).caption) {
         pushSlot("caption", "caption", { maxLines: 2, required: false });
       }
-      break;
-    case "divider":
       break;
     default:
       return false;

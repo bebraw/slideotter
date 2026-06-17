@@ -116,22 +116,7 @@ export function normalizeSelectionScope(selection: unknown, options: SelectionNo
   }
 
   if (kind === "selectionGroup") {
-    const selections = (Array.isArray(selectionRecord.selections) ? selectionRecord.selections : [])
-      .map((entry) => normalizeSelectionEntry(entry, options.slideSpec))
-      .filter((entry): entry is SelectionEntry => Boolean(entry));
-    const uniquePaths = new Set(selections.map((entry) => pathToString(entry.fieldPath)));
-    if (!selections.length || uniquePaths.size !== selections.length) {
-      return null;
-    }
-
-    return {
-      kind,
-      label: `${selections.length} selected fields`,
-      presentationId: normalizeText(selectionRecord.presentationId || options.presentationId, 80),
-      selections,
-      slideId,
-      slideRevision: normalizeText(selectionRecord.slideRevision, 120) || null
-    };
+    return normalizeSelectionGroupScope(selectionRecord, options, slideId);
   }
 
   const normalized = normalizeSelectionEntry(selectionRecord, options.slideSpec);
@@ -143,6 +128,29 @@ export function normalizeSelectionScope(selection: unknown, options: SelectionNo
     ...normalized,
     kind,
     presentationId: normalizeText(selectionRecord.presentationId || options.presentationId, 80),
+    slideId,
+    slideRevision: normalizeText(selectionRecord.slideRevision, 120) || null
+  };
+}
+
+function normalizeSelectionGroupScope(
+  selectionRecord: JsonRecord,
+  options: SelectionNormalizeOptions,
+  slideId: string
+): NormalizedSelectionScope | null {
+  const selections = (Array.isArray(selectionRecord.selections) ? selectionRecord.selections : [])
+    .map((entry) => normalizeSelectionEntry(entry, options.slideSpec))
+    .filter((entry): entry is SelectionEntry => Boolean(entry));
+  const uniquePaths = new Set(selections.map((entry) => pathToString(entry.fieldPath)));
+  if (!selections.length || uniquePaths.size !== selections.length) {
+    return null;
+  }
+
+  return {
+    kind: "selectionGroup",
+    label: `${selections.length} selected fields`,
+    presentationId: normalizeText(selectionRecord.presentationId || options.presentationId, 80),
+    selections,
     slideId,
     slideRevision: normalizeText(selectionRecord.slideRevision, 120) || null
   };

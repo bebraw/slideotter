@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { getPresentationPaths } from "./services/presentations.ts";
+import { getPresentationPaths } from "./services/presentation-paths.ts";
 import {
   isJsonObject,
   isSourcePayload,

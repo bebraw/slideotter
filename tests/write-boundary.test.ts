@@ -18,7 +18,7 @@ const {
   writeAllowedJson
 } = require("../studio/server/services/write-boundary.ts");
 const { outputDir } = require("../studio/server/services/paths.ts");
-const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
+const { getPresentationPaths } = require("../studio/server/services/presentation-paths.ts");
 
 const {
   cleanupCoveragePresentations,

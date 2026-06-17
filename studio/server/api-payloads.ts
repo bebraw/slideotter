@@ -112,27 +112,31 @@ function normalizePresentationDensity(value: unknown): "spacious" | "balanced" |
     : "spacious";
 }
 
+function normalizeCreationImageSearch(value: unknown): CreationFields["imageSearch"] {
+  const imageSearch = isImageSearchPayload(value) ? value : null;
+  return imageSearch
+    ? {
+        count: imageSearch.count || 3,
+        provider: imageSearch.provider || "openverse",
+        query: String(imageSearch.query || "").trim(),
+        restrictions: String(imageSearch.restrictions || "").trim()
+      }
+    : {
+        count: 3,
+        provider: "openverse",
+        query: "",
+        restrictions: ""
+      };
+}
+
 export function normalizeCreationFields(body: JsonObject = {}): CreationFields {
   const fields = body;
-  const imageSearch = isImageSearchPayload(fields.imageSearch) ? fields.imageSearch : null;
   const targetSlideCount = fields.targetSlideCount || fields.targetCount || null;
 
   return {
     audience: String(fields.audience || "").trim(),
     constraints: String(fields.constraints || "").trim(),
-    imageSearch: imageSearch
-      ? {
-          count: imageSearch.count || 3,
-          provider: imageSearch.provider || "openverse",
-          query: String(imageSearch.query || "").trim(),
-          restrictions: String(imageSearch.restrictions || "").trim()
-        }
-      : {
-          count: 3,
-          provider: "openverse",
-          query: "",
-          restrictions: ""
-    },
+    imageSearch: normalizeCreationImageSearch(fields.imageSearch),
     lang: String(fields.lang || fields.presentationLanguage || "").trim(),
     presentationDensity: normalizePresentationDensity(fields.presentationDensity),
     objective: String(fields.objective || "").trim(),

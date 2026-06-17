@@ -93,6 +93,31 @@ function wordSequenceMatches(words: string[], phrase: string[], startIndex: numb
   return phrase.slice(0, length).every((word, index) => normalizedPhraseWord(words[startIndex + index]) === word);
 }
 
+function appendKnownPhraseCompletion(candidate: string[], allWords: string[], maxLength: number, phrase: string[]): string[] | null {
+  const maxPrefixLength = Math.min(phrase.length - 1, candidate.length);
+  for (let prefixLength = maxPrefixLength; prefixLength >= 1; prefixLength -= 1) {
+    const candidateStart = candidate.length - prefixLength;
+    if (!wordSequenceMatches(candidate, phrase, candidateStart, prefixLength)) {
+      continue;
+    }
+
+    const remainingWords = phrase.length - prefixLength;
+    if (candidate.length + remainingWords > maxLength) {
+      continue;
+    }
+
+    const allWordsStart = candidate.length;
+    const allWordsMatch = phrase.slice(prefixLength).every((word, index) => normalizedPhraseWord(allWords[allWordsStart + index]) === word);
+    if (!allWordsMatch) {
+      continue;
+    }
+
+    return [...candidate, ...allWords.slice(allWordsStart, allWordsStart + remainingWords)];
+  }
+
+  return null;
+}
+
 function completeKnownPhrase(words: string[], allWords: string[], maxLength: number): string[] {
   let candidate = [...words];
   let changed = true;
@@ -100,30 +125,10 @@ function completeKnownPhrase(words: string[], allWords: string[], maxLength: num
   while (changed && candidate.length < maxLength) {
     changed = false;
     for (const phrase of localPhraseExceptions) {
-      const maxPrefixLength = Math.min(phrase.length - 1, candidate.length);
-      for (let prefixLength = maxPrefixLength; prefixLength >= 1; prefixLength -= 1) {
-        const candidateStart = candidate.length - prefixLength;
-        if (!wordSequenceMatches(candidate, phrase, candidateStart, prefixLength)) {
-          continue;
-        }
-
-        const remainingWords = phrase.length - prefixLength;
-        if (candidate.length + remainingWords > maxLength) {
-          continue;
-        }
-
-        const allWordsStart = candidate.length;
-        const allWordsMatch = phrase.slice(prefixLength).every((word, index) => normalizedPhraseWord(allWords[allWordsStart + index]) === word);
-        if (!allWordsMatch) {
-          continue;
-        }
-
-        candidate = [...candidate, ...allWords.slice(allWordsStart, allWordsStart + remainingWords)];
+      const completed = appendKnownPhraseCompletion(candidate, allWords, maxLength, phrase);
+      if (completed) {
+        candidate = completed;
         changed = true;
-        break;
-      }
-
-      if (changed) {
         break;
       }
     }
