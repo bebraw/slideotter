@@ -7,9 +7,11 @@ const activeDeckContext = require("../studio/server/services/active-deck-context
 const { getOutputConfig } = require("../studio/server/services/output-config.ts");
 const { getActivePresentationPaths, listPresentations } = require("../studio/server/services/presentations.ts");
 const {
-  asStudioOutputAssetUrl,
+  asStudioOutputAssetUrl
+} = require("../studio/server/services/studio-output-asset-url.ts");
+const {
   resolveStudioOutputAssetPath
-} = require("../studio/server/services/studio-output-assets.ts");
+} = require("../studio/server/services/studio-output-asset-path.ts");
 
 function main() {
   const presentationsState = listPresentations();

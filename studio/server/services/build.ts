@@ -11,7 +11,7 @@ import {
   repoRoot
 } from "./paths.ts";
 import { getActivePresentationPaths } from "./presentations.ts";
-import { asStudioOutputAssetUrl } from "./studio-output-assets.ts";
+import { asStudioOutputAssetUrl } from "./studio-output-asset-url.ts";
 
 function asAssetUrl(fileName: string) {
   return asStudioOutputAssetUrl(fileName);

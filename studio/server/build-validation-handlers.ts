@@ -2,7 +2,7 @@ import * as http from "http";
 
 import { buildAndRenderDeck, exportDeckPptx, getPreviewManifest } from "./services/build.ts";
 import { remediateCheckIssue } from "./services/operations.ts";
-import { asStudioOutputAssetUrl } from "./services/studio-output-assets.ts";
+import { asStudioOutputAssetUrl } from "./services/studio-output-asset-url.ts";
 import { validateDeck } from "./services/validate.ts";
 import { listAllVariants } from "./services/variants.ts";
 

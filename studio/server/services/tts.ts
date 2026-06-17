@@ -8,7 +8,7 @@ import {
   mode,
   outputDir
 } from "./paths.ts";
-import { asStudioOutputAssetUrl } from "./studio-output-assets.ts";
+import { asStudioOutputAssetUrl } from "./studio-output-asset-url.ts";
 
 type PiperVoice = {
   id: string;

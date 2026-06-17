@@ -8,7 +8,7 @@ import {
 import { buildAndRenderDeck } from "./build.ts";
 import { getOutputConfig } from "./output-config.ts";
 import { createContactSheet, listPages } from "./page-artifacts.ts";
-import { asStudioOutputAssetUrl } from "./studio-output-assets.ts";
+import { asStudioOutputAssetUrl } from "./studio-output-asset-url.ts";
 import { applyDeckStructurePlan, getDeckContext, saveDeckContext } from "./state.ts";
 import { getSlides, readSlideSpec, writeSlideSpec } from "./slides.ts";
 import {

@@ -8,7 +8,7 @@ import { createStandaloneSlideHtml, withBrowser } from "./dom-export.ts";
 import { getDomPreviewState } from "./dom-preview.ts";
 import { getOutputConfig } from "./output-config.ts";
 import { getSlide } from "./slides.ts";
-import { asStudioOutputAssetUrl } from "./studio-output-assets.ts";
+import { asStudioOutputAssetUrl } from "./studio-output-asset-url.ts";
 import { ensureAllowedDir } from "./write-boundary.ts";
 import {
   applyCandidateSlideDefaults,
@@ -143,8 +143,3 @@ export async function materializeCandidatesToVariants(slideId: string, candidate
 
   return createdVariants;
 }
-
-export const _test = {
-  createTransientVariant,
-  renderVariantPreview
-};
