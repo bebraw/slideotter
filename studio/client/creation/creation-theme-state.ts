@@ -1,8 +1,8 @@
 import { StudioClientState } from "../core/state.ts";
-import { StudioClientThemeFieldState } from "./theme-field-state.ts";
+import type { DeckThemeFields as ImportedDeckThemeFields } from "./theme-field-types.ts";
 
 export namespace StudioClientCreationThemeState {
-  export type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
+  export type DeckThemeFields = ImportedDeckThemeFields;
 
   export type ThemeSavePayload = {
     savedTheme?: StudioClientState.SavedTheme;
