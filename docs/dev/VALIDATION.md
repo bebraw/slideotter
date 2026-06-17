@@ -22,7 +22,9 @@ Use the narrowest validation command that can catch the class of change during i
 ## Advisory Diagnostics
 
 - `npm run diagnostics:readability`: runs Fallow's changed-code audit for complexity and readability signals.
-- `npm run diagnostics:health`: runs Fallow's codebase health report with hotspots and refactoring targets.
+- `npm run diagnostics:health`: runs Fallow's structural codebase health score.
+- `npm run diagnostics:targets`: runs Fallow's prioritized refactoring targets.
+- `npm run diagnostics:hotspots`: runs Fallow's git-history hotspot report separately from the structural score.
 - `npm run diagnostics:codebase`: runs both advisory diagnostics, even when the readability audit reports findings.
 
 These diagnostics support review and refactoring decisions. They are not part of `quality:gate`, `quality:gate:fast`, `quality:affected`, or CI because the project-specific validation gates remain the readiness baseline.
