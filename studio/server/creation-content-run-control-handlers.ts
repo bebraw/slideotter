@@ -106,173 +106,199 @@ function normalizedPartialContentRunFields(current: unknown, deps: PartialConten
   return deps.normalizeCreationFields(deps.isJsonObject(current) ? deps.jsonObjectOrEmpty(current.fields) : {});
 }
 
-function createCreationContentRunControlHandlers(deps: CreationContentRunControlHandlerDependencies) {
+async function createPartialContentRunPresentation(
+  params: PartialContentRunPresentationParams
+): Promise<PartialContentRunPresentation> {
+  const { deckPlan, fields, planSlides, run } = params;
+  const { slideContexts, slideSpecs } = buildPartialContentRunDeck(run, deckPlan);
+  const presentation = createPresentation({
+    ...fields,
+    createDefaultFlow: false,
+    outline: deckPlan.outline || "",
+    targetSlideCount: planSlides.length,
+    title: fields.title || "slideotter"
+  });
+  createOutlinePlanFromDeckPlan(presentation.id, deckPlan, {
+    audience: fields.audience,
+    name: "Approved partial creation outline",
+    objective: fields.objective,
+    presentationDensity: fields.presentationDensity,
+    purpose: fields.objective,
+    targetSlideCount: planSlides.length,
+    title: fields.title,
+    tone: fields.tone
+  });
+  setActivePresentation(presentation.id);
+
+  const materialUrlById = await importContentRunArtifacts(run, {
+    createMaterialFromDataUrl: (material) => createMaterialFromDataUrl({
+      ...material,
+      presentationId: presentation.id
+    }),
+    createMaterialFromRemoteImage: (material) => createMaterialFromRemoteImage({
+      ...material,
+      presentationId: presentation.id
+    }),
+    createSource: (source) => createSource({
+      ...source,
+      presentationId: presentation.id
+    })
+  });
+  const finalSlideSpecs = slideSpecs.map((slideSpec: SlideSpecPayload) => slideSpec.skipped
+    ? slideSpec
+    : replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById));
+  regeneratePresentationSlides(presentation.id, finalSlideSpecs, {
+    outline: deckPlan.outline || "",
+    slideContexts,
+    targetSlideCount: planSlides.length
+  });
+
+  const skippedCount = finalSlideSpecs.filter((slideSpec) => slideSpec.skipped === true).length;
+  return {
+    finalSlideSpecs,
+    id: presentation.id,
+    skippedCount
+  };
+}
+
+function completePartialContentRunDraft(
+  deps: CreationContentRunControlHandlerDependencies,
+  presentation: PartialContentRunPresentation
+): unknown {
+  const {
+    publishCreationDraftUpdate,
+    publishRuntimeState,
+    runtimeState,
+    updateWorkflowState
+  } = deps;
+
+  const nextDraft = savePresentationCreationDraft({
+    ...getPresentationCreationDraft(),
+    contentRun: null,
+    createdPresentationId: presentation.id,
+    stage: "content"
+  });
+  publishCreationDraftUpdate(nextDraft);
+
+  updateWorkflowState({
+    message: `Accepted ${presentation.finalSlideSpecs.length - presentation.skippedCount} completed slide${presentation.finalSlideSpecs.length - presentation.skippedCount === 1 ? "" : "s"} with ${presentation.skippedCount} skipped placeholder${presentation.skippedCount === 1 ? "" : "s"}.`,
+    ok: true,
+    operation: "accept-partial-presentation",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+  const resetDraft = clearPresentationCreationDraft();
+  publishCreationDraftUpdate(resetDraft);
+
+  return resetDraft;
+}
+
+async function handlePresentationDraftContentAcceptPartialRequest(
+  deps: CreationContentRunControlHandlerDependencies,
+  res: ServerResponse
+): Promise<void> {
   const {
     createJsonResponse,
     helpers,
     isJsonObject,
     jsonObjectOrEmpty,
     normalizeCreationFields,
-    publishCreationDraftUpdate,
-    publishRuntimeState,
     resetPresentationRuntime,
+    serializeRuntimeState,
+    updateWorkflowState
+  } = deps;
+
+  const current = getPresentationCreationDraft();
+  const { deckPlan, planSlides, run } = requirePartialContentRunDraft(current, {
+    helpers,
+    isJsonObject,
+    jsonObjectOrEmpty,
+    normalizeCreationFields
+  });
+
+  resetPresentationRuntime();
+  updateWorkflowState({
+    message: "Accepting completed slides and creating skipped placeholders...",
+    ok: false,
+    operation: "accept-partial-presentation",
+    stage: "accepting-partial",
+    status: "running"
+  });
+
+  const fields = normalizedPartialContentRunFields(current, {
+    helpers,
+    isJsonObject,
+    jsonObjectOrEmpty,
+    normalizeCreationFields
+  });
+  const presentation = await createPartialContentRunPresentation({
+    deckPlan,
+    fields,
+    planSlides,
+    run
+  });
+  const resetDraft = completePartialContentRunDraft(deps, presentation);
+
+  createJsonResponse(res, 200, {
+    creationDraft: resetDraft,
+    presentation: readPresentationSummary(presentation.id),
+    runtime: serializeRuntimeState()
+  });
+}
+
+async function handlePresentationDraftContentStopRequest(
+  deps: CreationContentRunControlHandlerDependencies,
+  res: ServerResponse
+): Promise<void> {
+  const {
+    createJsonResponse,
+    jsonObjectOrEmpty,
+    publishCreationDraftUpdate,
     runtimeState,
     serializeRuntimeState,
     updateWorkflowState
   } = deps;
-  async function createPartialContentRunPresentation(params: PartialContentRunPresentationParams): Promise<PartialContentRunPresentation> {
-    const { deckPlan, fields, planSlides, run } = params;
-    const { slideContexts, slideSpecs } = buildPartialContentRunDeck(run, deckPlan);
-    const presentation = createPresentation({
-      ...fields,
-      createDefaultFlow: false,
-      outline: deckPlan.outline || "",
-      targetSlideCount: planSlides.length,
-      title: fields.title || "slideotter"
-    });
-    createOutlinePlanFromDeckPlan(presentation.id, deckPlan, {
-      audience: fields.audience,
-      name: "Approved partial creation outline",
-      objective: fields.objective,
-      presentationDensity: fields.presentationDensity,
-      purpose: fields.objective,
-      targetSlideCount: planSlides.length,
-      title: fields.title,
-      tone: fields.tone
-    });
-    setActivePresentation(presentation.id);
 
-    const materialUrlById = await importContentRunArtifacts(run, {
-      createMaterialFromDataUrl: (material) => createMaterialFromDataUrl({
-        ...material,
-        presentationId: presentation.id
-      }),
-      createMaterialFromRemoteImage: (material) => createMaterialFromRemoteImage({
-        ...material,
-        presentationId: presentation.id
-      }),
-      createSource: (source) => createSource({
-        ...source,
-        presentationId: presentation.id
-      })
-    });
-    const finalSlideSpecs = slideSpecs.map((slideSpec: SlideSpecPayload) => slideSpec.skipped
-      ? slideSpec
-      : replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById));
-    regeneratePresentationSlides(presentation.id, finalSlideSpecs, {
-      outline: deckPlan.outline || "",
-      slideContexts,
-      targetSlideCount: planSlides.length
-    });
-
-    const skippedCount = finalSlideSpecs.filter((slideSpec) => slideSpec.skipped === true).length;
-    return {
-      finalSlideSpecs,
-      id: presentation.id,
-      skippedCount
-    };
-  }
-
-  function completePartialContentRunDraft(presentation: PartialContentRunPresentation): unknown {
-    const nextDraft = savePresentationCreationDraft({
-      ...getPresentationCreationDraft(),
-      contentRun: null,
-      createdPresentationId: presentation.id,
-      stage: "content"
-    });
-    publishCreationDraftUpdate(nextDraft);
-
-    updateWorkflowState({
-      message: `Accepted ${presentation.finalSlideSpecs.length - presentation.skippedCount} completed slide${presentation.finalSlideSpecs.length - presentation.skippedCount === 1 ? "" : "s"} with ${presentation.skippedCount} skipped placeholder${presentation.skippedCount === 1 ? "" : "s"}.`,
-      ok: true,
-      operation: "accept-partial-presentation",
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-    const resetDraft = clearPresentationCreationDraft();
-    publishCreationDraftUpdate(resetDraft);
-
-    return resetDraft;
-  }
-
-  async function handlePresentationDraftContentAcceptPartial(res: ServerResponse): Promise<void> {
-    const current = getPresentationCreationDraft();
-    const { deckPlan, planSlides, run } = requirePartialContentRunDraft(current, {
-      helpers,
-      isJsonObject,
-      jsonObjectOrEmpty,
-      normalizeCreationFields
-    });
-
-    resetPresentationRuntime();
-    updateWorkflowState({
-      message: "Accepting completed slides and creating skipped placeholders...",
-      ok: false,
-      operation: "accept-partial-presentation",
-      stage: "accepting-partial",
-      status: "running"
-    });
-
-    const fields = normalizedPartialContentRunFields(current, {
-      helpers,
-      isJsonObject,
-      jsonObjectOrEmpty,
-      normalizeCreationFields
-    });
-    const presentation = await createPartialContentRunPresentation({
-      deckPlan,
-      fields,
-      planSlides,
-      run
-    });
-    const resetDraft = completePartialContentRunDraft(presentation);
-
+  const current = getPresentationCreationDraft();
+  const run = jsonObjectOrEmpty(current && current.contentRun);
+  if (!run || run.status !== "running") {
     createJsonResponse(res, 200, {
-      creationDraft: resetDraft,
-      presentation: readPresentationSummary(presentation.id),
+      creationDraft: current,
       runtime: serializeRuntimeState()
     });
+    return;
   }
 
-  async function handlePresentationDraftContentStop(res: ServerResponse): Promise<void> {
-    const current = getPresentationCreationDraft();
-    const run = jsonObjectOrEmpty(current && current.contentRun);
-    if (!run || run.status !== "running") {
-      createJsonResponse(res, 200, {
-        creationDraft: current,
-        runtime: serializeRuntimeState()
-      });
-      return;
+  const nextDraft = savePresentationCreationDraft({
+    ...current,
+    contentRun: {
+      ...run,
+      stopRequested: true,
+      updatedAt: new Date().toISOString()
     }
+  });
+  publishCreationDraftUpdate(nextDraft);
+  updateWorkflowState({
+    message: "Stopping slide generation after the current slide...",
+    ok: false,
+    operation: runtimeState.workflow && runtimeState.workflow.operation || "create-presentation-from-outline",
+    stage: "stopping",
+    status: "running"
+  });
 
-    const nextDraft = savePresentationCreationDraft({
-      ...current,
-      contentRun: {
-        ...run,
-        stopRequested: true,
-        updatedAt: new Date().toISOString()
-      }
-    });
-    publishCreationDraftUpdate(nextDraft);
-    updateWorkflowState({
-      message: "Stopping slide generation after the current slide...",
-      ok: false,
-      operation: runtimeState.workflow && runtimeState.workflow.operation || "create-presentation-from-outline",
-      stage: "stopping",
-      status: "running"
-    });
+  createJsonResponse(res, 202, {
+    creationDraft: nextDraft,
+    runtime: serializeRuntimeState()
+  });
+}
 
-    createJsonResponse(res, 202, {
-      creationDraft: nextDraft,
-      runtime: serializeRuntimeState()
-    });
-  }
-
+function createCreationContentRunControlHandlers(deps: CreationContentRunControlHandlerDependencies) {
   return {
-    handlePresentationDraftContentAcceptPartial,
-    handlePresentationDraftContentStop
+    handlePresentationDraftContentAcceptPartial: (res: ServerResponse) =>
+      handlePresentationDraftContentAcceptPartialRequest(deps, res),
+    handlePresentationDraftContentStop: (res: ServerResponse) => handlePresentationDraftContentStopRequest(deps, res)
   };
 }
 

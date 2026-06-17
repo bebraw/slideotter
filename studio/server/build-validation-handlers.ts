@@ -32,7 +32,65 @@ type BuildValidationHandlerDependencies = {
   updateWorkflowState: (nextWorkflow: JsonObject) => void;
 };
 
-export function createBuildValidationHandlers(deps: BuildValidationHandlerDependencies) {
+async function handleBuildRequest(deps: BuildValidationHandlerDependencies, res: ServerResponse): Promise<void> {
+  const { createJsonResponse, publishRuntimeState, runtimeState, serializeRuntimeState } = deps;
+  const result = await buildAndRenderDeck();
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    pdf: {
+      path: result.build.pdfFile,
+      url: asStudioOutputAssetUrl(result.build.pdfFile)
+    },
+    previews: result.previews,
+    runtime: serializeRuntimeState()
+  });
+}
+
+async function handlePptxExportRequest(deps: BuildValidationHandlerDependencies, res: ServerResponse): Promise<void> {
+  const { createJsonResponse, publishRuntimeState, runtimeState, serializeRuntimeState, updateWorkflowState } = deps;
+  updateWorkflowState({
+    message: "Exporting PowerPoint handoff...",
+    ok: false,
+    operation: "export-pptx",
+    stage: "rendering-pptx",
+    status: "running"
+  });
+  const result = await exportDeckPptx();
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+  updateWorkflowState({
+    message: `Exported PPTX with ${result.diagnostics.slideCount} slide${result.diagnostics.slideCount === 1 ? "" : "s"}.`,
+    ok: true,
+    operation: "export-pptx",
+    stage: "complete",
+    status: "complete"
+  });
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    diagnostics: result.diagnostics,
+    pptx: {
+      path: result.pptxFile,
+      url: asStudioOutputAssetUrl(result.pptxFile)
+    },
+    runtime: serializeRuntimeState()
+  });
+}
+
+async function handleValidateRequest(
+  deps: BuildValidationHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
   const {
     createJsonResponse,
     publishRuntimeState,
@@ -42,121 +100,75 @@ export function createBuildValidationHandlers(deps: BuildValidationHandlerDepend
     updateWorkflowState
   } = deps;
 
-  async function handleBuild(res: ServerResponse): Promise<void> {
-    const result = await buildAndRenderDeck();
-    runtimeState.build = {
-      ok: true,
-      updatedAt: new Date().toISOString()
-    };
-    runtimeState.lastError = null;
-    publishRuntimeState();
+  const body = await readJsonBody(req);
+  updateWorkflowState({
+    includeRender: body.includeRender === true,
+    message: body.includeRender === true
+      ? "Running full render validation..."
+      : "Running geometry and text validation...",
+    ok: false,
+    operation: "validate",
+    stage: body.includeRender === true ? "validating-render" : "validating-geometry-text",
+    status: "running"
+  });
+  const result = await validateDeck({
+    includeRender: body.includeRender === true
+  });
 
-    createJsonResponse(res, 200, {
-      pdf: {
-        path: result.build.pdfFile,
-        url: asStudioOutputAssetUrl(result.build.pdfFile)
-      },
-      previews: result.previews,
-      runtime: serializeRuntimeState()
-    });
+  runtimeState.validation = {
+    includeRender: body.includeRender === true,
+    ok: result.ok,
+    updatedAt: new Date().toISOString()
+  };
+  updateWorkflowState({
+    includeRender: body.includeRender === true,
+    message: result.ok ? "Validation completed without blocking issues." : "Validation completed and found issues.",
+    ok: result.ok,
+    operation: "validate",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+  createJsonResponse(res, 200, {
+    ...result,
+    runtime: serializeRuntimeState()
+  });
+}
+
+async function handleCheckRemediationRequest(
+  deps: BuildValidationHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const { createJsonResponse, publishRuntimeState, readJsonBody, runtimeState, serializeRuntimeState } = deps;
+  const body = await readJsonBody(req);
+  const slideId = typeof body.slideId === "string" ? body.slideId : "";
+  if (!slideId) {
+    throw new Error("Expected slideId when creating check remediation candidates");
   }
 
-  async function handlePptxExport(res: ServerResponse): Promise<void> {
-    updateWorkflowState({
-      message: "Exporting PowerPoint handoff...",
-      ok: false,
-      operation: "export-pptx",
-      stage: "rendering-pptx",
-      status: "running"
-    });
-    const result = await exportDeckPptx();
-    runtimeState.build = {
-      ok: true,
-      updatedAt: new Date().toISOString()
-    };
-    runtimeState.lastError = null;
-    updateWorkflowState({
-      message: `Exported PPTX with ${result.diagnostics.slideCount} slide${result.diagnostics.slideCount === 1 ? "" : "s"}.`,
-      ok: true,
-      operation: "export-pptx",
-      stage: "complete",
-      status: "complete"
-    });
-    publishRuntimeState();
+  const result = await remediateCheckIssue(slideId, {
+    blockName: body.blockName,
+    issue: body.issue,
+    issueIndex: body.issueIndex
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+  createJsonResponse(res, 200, {
+    ...result,
+    previews: getPreviewManifest(),
+    runtime: serializeRuntimeState(),
+    variants: listAllVariants()
+  });
+}
 
-    createJsonResponse(res, 200, {
-      diagnostics: result.diagnostics,
-      pptx: {
-        path: result.pptxFile,
-        url: asStudioOutputAssetUrl(result.pptxFile)
-      },
-      runtime: serializeRuntimeState()
-    });
-  }
-
-  async function handleValidate(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    updateWorkflowState({
-      includeRender: body.includeRender === true,
-      message: body.includeRender === true
-        ? "Running full render validation..."
-        : "Running geometry and text validation...",
-      ok: false,
-      operation: "validate",
-      stage: body.includeRender === true ? "validating-render" : "validating-geometry-text",
-      status: "running"
-    });
-    const result = await validateDeck({
-      includeRender: body.includeRender === true
-    });
-
-    runtimeState.validation = {
-      includeRender: body.includeRender === true,
-      ok: result.ok,
-      updatedAt: new Date().toISOString()
-    };
-    updateWorkflowState({
-      includeRender: body.includeRender === true,
-      message: result.ok ? "Validation completed without blocking issues." : "Validation completed and found issues.",
-      ok: result.ok,
-      operation: "validate",
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-    createJsonResponse(res, 200, {
-      ...result,
-      runtime: serializeRuntimeState()
-    });
-  }
-
-  async function handleCheckRemediation(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const slideId = typeof body.slideId === "string" ? body.slideId : "";
-    if (!slideId) {
-      throw new Error("Expected slideId when creating check remediation candidates");
-    }
-
-    const result = await remediateCheckIssue(slideId, {
-      blockName: body.blockName,
-      issue: body.issue,
-      issueIndex: body.issueIndex
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-    createJsonResponse(res, 200, {
-      ...result,
-      previews: getPreviewManifest(),
-      runtime: serializeRuntimeState(),
-      variants: listAllVariants()
-    });
-  }
-
+export function createBuildValidationHandlers(deps: BuildValidationHandlerDependencies) {
   return {
-    handleBuild,
-    handleCheckRemediation,
-    handlePptxExport,
-    handleValidate
+    handleBuild: (res: ServerResponse) => handleBuildRequest(deps, res),
+    handleCheckRemediation: (req: ServerRequest, res: ServerResponse) =>
+      handleCheckRemediationRequest(deps, req, res),
+    handlePptxExport: (res: ServerResponse) => handlePptxExportRequest(deps, res),
+    handleValidate: (req: ServerRequest, res: ServerResponse) => handleValidateRequest(deps, req, res)
   };
 }

@@ -34,149 +34,176 @@ type MaterialSourceHandlerDependencies = {
   updateWorkflowState: (nextWorkflow: JsonObject) => void;
 };
 
-export function createMaterialSourceHandlers(deps: MaterialSourceHandlerDependencies) {
+async function handleMaterialUploadRequest(
+  deps: MaterialSourceHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const material = createMaterialFromDataUrl(body || {});
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    material,
+    materials: listMaterials()
+  });
+}
+
+function handleMaterialsIndexRequest(deps: MaterialSourceHandlerDependencies, res: ServerResponse): void {
+  deps.createJsonResponse(res, 200, { materials: listMaterials() });
+}
+
+async function handleSvglSearchRequest(
+  deps: MaterialSourceHandlerDependencies,
+  _req: ServerRequest,
+  res: ServerResponse,
+  url: URL
+): Promise<void> {
+  const results = await searchSvglLogos({
+    limit: url.searchParams.get("limit") || undefined,
+    query: url.searchParams.get("query") || ""
+  });
+
+  deps.createJsonResponse(res, 200, { results });
+}
+
+async function handleSvglImportRequest(
+  deps: MaterialSourceHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const material = await importSvglLogo(body || {});
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    material,
+    materials: listMaterials()
+  });
+}
+
+async function handleSourceCreateRequest(
+  deps: MaterialSourceHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
   const {
     createJsonResponse,
-    describeStructuredSlide,
     publishRuntimeState,
     readJsonBody,
     runtimeState,
     serializeRuntimeState,
-    serializeSlideSpec,
     updateWorkflowState
   } = deps;
 
-  async function handleMaterialUpload(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const material = createMaterialFromDataUrl(body || {});
-    publishRuntimeState();
+  const body = await readJsonBody(req);
+  const source = await createSource(body || {});
+  updateWorkflowState({
+    message: `Added source ${source.title}.`,
+    ok: true,
+    operation: "add-source",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
 
-    createJsonResponse(res, 200, {
-      material,
-      materials: listMaterials()
-    });
+  createJsonResponse(res, 200, {
+    runtime: serializeRuntimeState(),
+    source,
+    sources: listSources()
+  });
+}
+
+async function handleSourceDeleteRequest(
+  deps: MaterialSourceHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const { createJsonResponse, publishRuntimeState, readJsonBody, runtimeState, serializeRuntimeState, updateWorkflowState } = deps;
+  const body = await readJsonBody(req);
+  if (typeof body.sourceId !== "string" || !body.sourceId) {
+    throw new Error("Expected sourceId");
   }
 
-  function handleMaterialsIndex(res: ServerResponse): void {
-    createJsonResponse(res, 200, { materials: listMaterials() });
-  }
+  const sources = deleteSource(body.sourceId);
+  updateWorkflowState({
+    message: "Removed presentation source.",
+    ok: true,
+    operation: "delete-source",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
 
-  async function handleSvglSearch(_req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
-    const results = await searchSvglLogos({
-      limit: url.searchParams.get("limit") || undefined,
-      query: url.searchParams.get("query") || ""
-    });
+  createJsonResponse(res, 200, {
+    runtime: serializeRuntimeState(),
+    sources
+  });
+}
 
-    createJsonResponse(res, 200, { results });
-  }
+function handleSourcesIndexRequest(deps: MaterialSourceHandlerDependencies, res: ServerResponse): void {
+  deps.createJsonResponse(res, 200, { sources: listSources() });
+}
 
-  async function handleSvglImport(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const material = await importSvglLogo(body || {});
-    publishRuntimeState();
+async function handleSlideMaterialUpdateRequest(
+  deps: MaterialSourceHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse,
+  slideId: string
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const currentSpec = readSlideSpec(slideId);
+  const materialId = typeof body.materialId === "string" ? body.materialId : "";
+  const nextSpec: SlideSpecPayload = { ...currentSpec };
 
-    createJsonResponse(res, 200, {
-      material,
-      materials: listMaterials()
-    });
-  }
-
-  async function handleSourceCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const source = await createSource(body || {});
-    updateWorkflowState({
-      message: `Added source ${source.title}.`,
-      ok: true,
-      operation: "add-source",
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      runtime: serializeRuntimeState(),
-      source,
-      sources: listSources()
-    });
-  }
-
-  async function handleSourceDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    if (typeof body.sourceId !== "string" || !body.sourceId) {
-      throw new Error("Expected sourceId");
+  if (!materialId) {
+    delete nextSpec.media;
+  } else {
+    const material = getMaterial(materialId);
+    const caption = String(body.caption || material.caption || "").replace(/\s+/g, " ").trim();
+    const media: JsonObject = {
+      alt: String(body.alt || material.alt || material.title).replace(/\s+/g, " ").trim() || material.title,
+      fit: currentSpec.type === "photo" ? "cover" : "contain",
+      focalPoint: "center",
+      id: material.id,
+      src: material.url,
+      title: material.title
+    };
+    if (caption) {
+      media.caption = caption;
     }
-
-    const sources = deleteSource(body.sourceId);
-    updateWorkflowState({
-      message: "Removed presentation source.",
-      ok: true,
-      operation: "delete-source",
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      runtime: serializeRuntimeState(),
-      sources
-    });
+    nextSpec.media = media;
   }
 
-  function handleSourcesIndex(res: ServerResponse): void {
-    createJsonResponse(res, 200, { sources: listSources() });
-  }
+  writeSlideSpec(slideId, nextSpec);
+  const structured = deps.describeStructuredSlide(slideId);
+  deps.runtimeState.lastError = null;
+  deps.publishRuntimeState();
 
-  async function handleSlideMaterialUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-    const body = await readJsonBody(req);
-    const currentSpec = readSlideSpec(slideId);
-    const materialId = typeof body.materialId === "string" ? body.materialId : "";
-    const nextSpec: SlideSpecPayload = { ...currentSpec };
+  deps.createJsonResponse(res, 200, {
+    domPreview: getDomPreviewState(),
+    materials: listMaterials(),
+    slide: getSlide(slideId),
+    slideSpec: structured.slideSpec,
+    slideSpecError: structured.slideSpecError,
+    source: structured.slideSpec ? deps.serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
+    structured: structured.structured
+  });
+}
 
-    if (!materialId) {
-      delete nextSpec.media;
-    } else {
-      const material = getMaterial(materialId);
-      const caption = String(body.caption || material.caption || "").replace(/\s+/g, " ").trim();
-      const media: JsonObject = {
-        alt: String(body.alt || material.alt || material.title).replace(/\s+/g, " ").trim() || material.title,
-        fit: currentSpec.type === "photo" ? "cover" : "contain",
-        focalPoint: "center",
-        id: material.id,
-        src: material.url,
-        title: material.title
-      };
-      if (caption) {
-        media.caption = caption;
-      }
-      nextSpec.media = media;
-    }
-
-    writeSlideSpec(slideId, nextSpec);
-    const structured = describeStructuredSlide(slideId);
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      domPreview: getDomPreviewState(),
-      materials: listMaterials(),
-      slide: getSlide(slideId),
-      slideSpec: structured.slideSpec,
-      slideSpecError: structured.slideSpecError,
-      source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
-      structured: structured.structured
-    });
-  }
-
+export function createMaterialSourceHandlers(deps: MaterialSourceHandlerDependencies) {
   return {
-    handleMaterialUpload,
-    handleMaterialsIndex,
-    handleSlideMaterialUpdate,
-    handleSvglImport,
-    handleSvglSearch,
-    handleSourceCreate,
-    handleSourceDelete,
-    handleSourcesIndex
+    handleMaterialUpload: (req: ServerRequest, res: ServerResponse) => handleMaterialUploadRequest(deps, req, res),
+    handleMaterialsIndex: (res: ServerResponse) => handleMaterialsIndexRequest(deps, res),
+    handleSlideMaterialUpdate: (req: ServerRequest, res: ServerResponse, slideId: string) =>
+      handleSlideMaterialUpdateRequest(deps, req, res, slideId),
+    handleSvglImport: (req: ServerRequest, res: ServerResponse) => handleSvglImportRequest(deps, req, res),
+    handleSvglSearch: (req: ServerRequest, res: ServerResponse, url: URL) =>
+      handleSvglSearchRequest(deps, req, res, url),
+    handleSourceCreate: (req: ServerRequest, res: ServerResponse) => handleSourceCreateRequest(deps, req, res),
+    handleSourceDelete: (req: ServerRequest, res: ServerResponse) => handleSourceDeleteRequest(deps, req, res),
+    handleSourcesIndex: (res: ServerResponse) => handleSourcesIndexRequest(deps, res)
   };
 }

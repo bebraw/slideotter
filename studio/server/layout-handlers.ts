@@ -155,197 +155,218 @@ function saveFavoriteLayoutCandidate(body: JsonObject, deckLayout: JsonObject, d
   });
 }
 
+async function handleLayoutSaveRequest(
+  deps: LayoutHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const slideId = typeof body.slideId === "string" ? body.slideId : "";
+  if (!slideId) {
+    throw new Error("Expected slideId when saving a layout");
+  }
+
+  const slideSpec = readSlideSpec(slideId);
+  const saved = saveLayoutFromSlideSpec(slideSpec, {
+    compatibility: createLayoutCompatibility(body, slideSpec.type),
+    description: body.description,
+    name: body.name,
+    provenance: {
+      operation: "manual-save",
+      slideId,
+      source: "current-slide",
+      slideType: slideSpec.type
+    },
+    validationEvidence: createLayoutEvidence(body)
+  });
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    layout: saved.layout,
+    layouts: saved.state.layouts
+  });
+}
+
+async function handleFavoriteLayoutSaveRequest(
+  deps: LayoutHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
+  if (!layoutId) {
+    throw new Error("Expected layoutId when saving a favorite layout");
+  }
+
+  const saved = saveFavoriteLayoutFromDeckLayout(layoutId);
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    favoriteLayout: saved.layout,
+    favoriteLayouts: saved.state.layouts
+  });
+}
+
+async function handleLayoutCandidateSaveRequest(
+  deps: LayoutHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const slideSpec = deps.isSlideSpecPayload(body.slideSpec)
+    ? body.slideSpec
+    : null;
+  if (!slideSpec) {
+    throw new Error("Expected slideSpec when saving a layout candidate");
+  }
+
+  const { description, name } = layoutCandidateText(body, slideSpec);
+  const deckSaved = saveLayoutFromSlideSpec(slideSpec, {
+    compatibility: createLayoutCompatibility(body, slideSpec.type),
+    description,
+    definition: body.layoutDefinition,
+    name,
+    provenance: {
+      candidateOperation: typeof body.operation === "string" ? body.operation : "layout-candidate",
+      source: "candidate",
+      slideType: slideSpec.type
+    },
+    validationEvidence: createLayoutEvidence(body)
+  });
+  const favoriteSaved = saveFavoriteLayoutCandidate(body, deckSaved.layout, description);
+
+  deps.publishRuntimeState();
+  deps.createJsonResponse(res, 200, {
+    favoriteLayout: favoriteSaved ? favoriteSaved.layout : null,
+    favoriteLayouts: readFavoriteLayouts().layouts,
+    layout: deckSaved.layout,
+    layouts: readLayouts().layouts
+  });
+}
+
+async function handleFavoriteLayoutDeleteRequest(
+  deps: LayoutHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
+  if (!layoutId) {
+    throw new Error("Expected layoutId when deleting a favorite layout");
+  }
+
+  const state = deleteFavoriteLayout(layoutId);
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    favoriteLayouts: state.layouts
+  });
+}
+
+async function handleLayoutExportRequest(
+  deps: LayoutHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
+  const scope = typeof body.scope === "string" ? body.scope : "deck";
+  const pack = body.pack === true;
+  if (!layoutId && !pack) {
+    throw new Error("Expected layoutId when exporting a layout");
+  }
+
+  const document = pack
+    ? scope === "favorite"
+      ? exportFavoriteLayoutPack()
+      : exportDeckLayoutPack()
+    : scope === "favorite"
+      ? exportFavoriteLayout(layoutId)
+      : exportDeckLayout(layoutId);
+
+  deps.createJsonResponse(res, 200, { document });
+}
+
+async function handleLayoutImportRequest(
+  deps: LayoutHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const scope = typeof body.scope === "string" ? body.scope : "deck";
+  const document = isLayoutImportDocument(body.document) ? body.document : null;
+  if (!document) {
+    throw new Error("Expected document when importing a layout");
+  }
+
+  const isPack = document.kind === "slideotter.layoutPack" || Array.isArray(document.layouts);
+  const saved = scope === "favorite"
+    ? isPack
+      ? importFavoriteLayoutPack(document, { description: body.description, id: body.id, name: body.name })
+      : importFavoriteLayout(document, { description: body.description, id: body.id, name: body.name })
+    : isPack
+      ? importDeckLayoutPack(document, { description: body.description, id: body.id, name: body.name })
+      : importDeckLayout(document, { description: body.description, id: body.id, name: body.name });
+  deps.publishRuntimeState();
+  const importedLayouts = "layouts" in saved && Array.isArray(saved.layouts) ? saved.layouts : [saved.layout];
+
+  deps.createJsonResponse(res, 200, {
+    favoriteLayouts: readFavoriteLayouts().layouts,
+    layout: saved.layout,
+    importedLayouts,
+    layouts: readLayouts().layouts
+  });
+}
+
+async function handleLayoutApplyRequest(
+  deps: LayoutHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const slideId = typeof body.slideId === "string" ? body.slideId : "";
+  const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
+  if (!slideId || !layoutId) {
+    throw new Error("Expected slideId and layoutId when applying a layout");
+  }
+
+  const currentSpec = readSlideSpec(slideId);
+  const nextSpec = applyLayoutToSlideSpec(currentSpec, layoutId);
+  writeSlideSpec(slideId, nextSpec);
+  const structured = deps.describeStructuredSlide(slideId);
+  deps.runtimeState.lastError = null;
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    domPreview: getDomPreviewState({ includeDetours: true }),
+    favoriteLayouts: readFavoriteLayouts().layouts,
+    layouts: readLayouts().layouts,
+    previews: getPreviewManifest(),
+    slide: getSlide(slideId),
+    slideSpec: structured.slideSpec,
+    slideSpecError: structured.slideSpecError,
+    source: structured.slideSpec ? deps.serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
+    structured: structured.structured
+  });
+}
+
+function handleLayoutsIndexRequest(deps: LayoutHandlerDependencies, res: ServerResponse): void {
+  deps.createJsonResponse(res, 200, { layouts: readLayouts().layouts });
+}
+
 export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
-  const {
-    createJsonResponse,
-    describeStructuredSlide,
-    isSlideSpecPayload,
-    publishRuntimeState,
-    readJsonBody,
-    runtimeState,
-    serializeSlideSpec
-  } = deps;
-
-  async function handleLayoutSave(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const slideId = typeof body.slideId === "string" ? body.slideId : "";
-    if (!slideId) {
-      throw new Error("Expected slideId when saving a layout");
-    }
-
-    const slideSpec = readSlideSpec(slideId);
-    const saved = saveLayoutFromSlideSpec(slideSpec, {
-      compatibility: createLayoutCompatibility(body, slideSpec.type),
-      description: body.description,
-      name: body.name,
-      provenance: {
-        operation: "manual-save",
-        slideId,
-        source: "current-slide",
-        slideType: slideSpec.type
-      },
-      validationEvidence: createLayoutEvidence(body)
-    });
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      layout: saved.layout,
-      layouts: saved.state.layouts
-    });
-  }
-
-  async function handleFavoriteLayoutSave(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
-    if (!layoutId) {
-      throw new Error("Expected layoutId when saving a favorite layout");
-    }
-
-    const saved = saveFavoriteLayoutFromDeckLayout(layoutId);
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      favoriteLayout: saved.layout,
-      favoriteLayouts: saved.state.layouts
-    });
-  }
-
-  async function handleLayoutCandidateSave(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const slideSpec = isSlideSpecPayload(body.slideSpec)
-      ? body.slideSpec
-      : null;
-    if (!slideSpec) {
-      throw new Error("Expected slideSpec when saving a layout candidate");
-    }
-
-    const { description, name } = layoutCandidateText(body, slideSpec);
-    const deckSaved = saveLayoutFromSlideSpec(slideSpec, {
-      compatibility: createLayoutCompatibility(body, slideSpec.type),
-      description,
-      definition: body.layoutDefinition,
-      name,
-      provenance: {
-        candidateOperation: typeof body.operation === "string" ? body.operation : "layout-candidate",
-        source: "candidate",
-        slideType: slideSpec.type
-      },
-      validationEvidence: createLayoutEvidence(body)
-    });
-    const favoriteSaved = saveFavoriteLayoutCandidate(body, deckSaved.layout, description);
-
-    publishRuntimeState();
-    createJsonResponse(res, 200, {
-      favoriteLayout: favoriteSaved ? favoriteSaved.layout : null,
-      favoriteLayouts: readFavoriteLayouts().layouts,
-      layout: deckSaved.layout,
-      layouts: readLayouts().layouts
-    });
-  }
-
-  async function handleFavoriteLayoutDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
-    if (!layoutId) {
-      throw new Error("Expected layoutId when deleting a favorite layout");
-    }
-
-    const state = deleteFavoriteLayout(layoutId);
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      favoriteLayouts: state.layouts
-    });
-  }
-
-  async function handleLayoutExport(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
-    const scope = typeof body.scope === "string" ? body.scope : "deck";
-    const pack = body.pack === true;
-    if (!layoutId && !pack) {
-      throw new Error("Expected layoutId when exporting a layout");
-    }
-
-    const document = pack
-      ? scope === "favorite"
-        ? exportFavoriteLayoutPack()
-        : exportDeckLayoutPack()
-      : scope === "favorite"
-        ? exportFavoriteLayout(layoutId)
-        : exportDeckLayout(layoutId);
-
-    createJsonResponse(res, 200, { document });
-  }
-
-  async function handleLayoutImport(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const scope = typeof body.scope === "string" ? body.scope : "deck";
-    const document = isLayoutImportDocument(body.document) ? body.document : null;
-    if (!document) {
-      throw new Error("Expected document when importing a layout");
-    }
-
-    const isPack = document.kind === "slideotter.layoutPack" || Array.isArray(document.layouts);
-    const saved = scope === "favorite"
-      ? isPack
-        ? importFavoriteLayoutPack(document, { description: body.description, id: body.id, name: body.name })
-        : importFavoriteLayout(document, { description: body.description, id: body.id, name: body.name })
-      : isPack
-        ? importDeckLayoutPack(document, { description: body.description, id: body.id, name: body.name })
-        : importDeckLayout(document, { description: body.description, id: body.id, name: body.name });
-    publishRuntimeState();
-    const importedLayouts = "layouts" in saved && Array.isArray(saved.layouts) ? saved.layouts : [saved.layout];
-
-    createJsonResponse(res, 200, {
-      favoriteLayouts: readFavoriteLayouts().layouts,
-      layout: saved.layout,
-      importedLayouts,
-      layouts: readLayouts().layouts
-    });
-  }
-
-  async function handleLayoutApply(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const slideId = typeof body.slideId === "string" ? body.slideId : "";
-    const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
-    if (!slideId || !layoutId) {
-      throw new Error("Expected slideId and layoutId when applying a layout");
-    }
-
-    const currentSpec = readSlideSpec(slideId);
-    const nextSpec = applyLayoutToSlideSpec(currentSpec, layoutId);
-    writeSlideSpec(slideId, nextSpec);
-    const structured = describeStructuredSlide(slideId);
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      domPreview: getDomPreviewState({ includeDetours: true }),
-      favoriteLayouts: readFavoriteLayouts().layouts,
-      layouts: readLayouts().layouts,
-      previews: getPreviewManifest(),
-      slide: getSlide(slideId),
-      slideSpec: structured.slideSpec,
-      slideSpecError: structured.slideSpecError,
-      source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
-      structured: structured.structured
-    });
-  }
-
-  function handleLayoutsIndex(res: ServerResponse): void {
-    createJsonResponse(res, 200, { layouts: readLayouts().layouts });
-  }
-
   return {
-    handleFavoriteLayoutDelete,
-    handleFavoriteLayoutSave,
-    handleLayoutApply,
-    handleLayoutCandidateSave,
-    handleLayoutExport,
-    handleLayoutImport,
-    handleLayoutsIndex,
-    handleLayoutSave
+    handleFavoriteLayoutDelete: (req: ServerRequest, res: ServerResponse) =>
+      handleFavoriteLayoutDeleteRequest(deps, req, res),
+    handleFavoriteLayoutSave: (req: ServerRequest, res: ServerResponse) =>
+      handleFavoriteLayoutSaveRequest(deps, req, res),
+    handleLayoutApply: (req: ServerRequest, res: ServerResponse) => handleLayoutApplyRequest(deps, req, res),
+    handleLayoutCandidateSave: (req: ServerRequest, res: ServerResponse) =>
+      handleLayoutCandidateSaveRequest(deps, req, res),
+    handleLayoutExport: (req: ServerRequest, res: ServerResponse) => handleLayoutExportRequest(deps, req, res),
+    handleLayoutImport: (req: ServerRequest, res: ServerResponse) => handleLayoutImportRequest(deps, req, res),
+    handleLayoutsIndex: (res: ServerResponse) => handleLayoutsIndexRequest(deps, res),
+    handleLayoutSave: (req: ServerRequest, res: ServerResponse) => handleLayoutSaveRequest(deps, req, res)
   };
 }
 

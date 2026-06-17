@@ -120,7 +120,25 @@ function createAssistantResponsePayload(resultRecord: JsonObject, runtime: JsonO
   };
 }
 
-export function createAssistantHandlers(deps: AssistantHandlerDependencies) {
+async function handleAssistantSessionRequest(
+  deps: Pick<AssistantHandlerDependencies, "createJsonResponse">,
+  _req: ServerRequest,
+  res: ServerResponse,
+  url: URL
+): Promise<void> {
+  const sessionId = url.searchParams.get("sessionId") || "default";
+  deps.createJsonResponse(res, 200, {
+    actions: buildActionDescriptors(),
+    session: getAssistantSession(sessionId),
+    suggestions: getAssistantSuggestions()
+  });
+}
+
+async function handleAssistantSendRequest(
+  deps: AssistantHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
   const {
     createJsonResponse,
     createWorkflowProgressReporter,
@@ -132,60 +150,52 @@ export function createAssistantHandlers(deps: AssistantHandlerDependencies) {
     updateWorkflowState
   } = deps;
 
-  async function handleAssistantSession(_req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
-    const sessionId = url.searchParams.get("sessionId") || "default";
-    createJsonResponse(res, 200, {
-      actions: buildActionDescriptors(),
-      session: getAssistantSession(sessionId),
-      suggestions: getAssistantSuggestions()
-    });
+  const body = await readJsonBody(req);
+  if (typeof body.message !== "string") {
+    throw new Error("Expected message when sending to assistant");
   }
 
-  async function handleAssistantSend(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    if (typeof body.message !== "string") {
-      throw new Error("Expected message when sending to assistant");
-    }
-
-    const result = await handleAssistantMessage({
-      candidateCount: body.candidateCount,
+  const result = await handleAssistantMessage({
+    candidateCount: body.candidateCount,
+    dryRun: body.dryRun !== false,
+    message: body.message,
+    onProgress: createWorkflowProgressReporter({
       dryRun: body.dryRun !== false,
-      message: body.message,
-      onProgress: createWorkflowProgressReporter({
-        dryRun: body.dryRun !== false,
-        operation: "assistant-workflow",
-        slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
-      }),
-      selection: body.selection && typeof body.selection === "object" ? body.selection : null,
-      sessionId: typeof body.sessionId === "string" && body.sessionId ? body.sessionId : "default",
+      operation: "assistant-workflow",
       slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
-    });
-    const resultRecord = jsonObjectOrEmpty(result);
-    const action = jsonObjectOrEmpty(resultRecord.action);
-    const reply = jsonObjectOrEmpty(resultRecord.reply);
-    const validation = jsonObjectOrEmpty(resultRecord.validation);
-    const replyContent = typeof reply.content === "string" ? reply.content : "";
+    }),
+    selection: body.selection && typeof body.selection === "object" ? body.selection : null,
+    sessionId: typeof body.sessionId === "string" && body.sessionId ? body.sessionId : "default",
+    slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
+  });
+  const resultRecord = jsonObjectOrEmpty(result);
+  const action = jsonObjectOrEmpty(resultRecord.action);
+  const reply = jsonObjectOrEmpty(resultRecord.reply);
+  const validation = jsonObjectOrEmpty(resultRecord.validation);
+  const replyContent = typeof reply.content === "string" ? reply.content : "";
 
-    if (assistantActionUpdatesWorkflow(action.type)) {
-      updateAssistantActionWorkflow(action, replyContent, runtimeState, updateWorkflowState);
-    }
-
-    if (action.type === "ideate-deck-structure") {
-      updateAssistantDeckStructureWorkflow(action, replyContent, updateWorkflowState);
-    }
-
-    if (action.type === "validate" && Object.keys(validation).length) {
-      updateAssistantValidationWorkflow(action, validation, runtimeState, updateWorkflowState);
-    }
-
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, createAssistantResponsePayload(resultRecord, serializeRuntimeState()));
+  if (assistantActionUpdatesWorkflow(action.type)) {
+    updateAssistantActionWorkflow(action, replyContent, runtimeState, updateWorkflowState);
   }
 
+  if (action.type === "ideate-deck-structure") {
+    updateAssistantDeckStructureWorkflow(action, replyContent, updateWorkflowState);
+  }
+
+  if (action.type === "validate" && Object.keys(validation).length) {
+    updateAssistantValidationWorkflow(action, validation, runtimeState, updateWorkflowState);
+  }
+
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, createAssistantResponsePayload(resultRecord, serializeRuntimeState()));
+}
+
+export function createAssistantHandlers(deps: AssistantHandlerDependencies) {
   return {
-    handleAssistantSend,
-    handleAssistantSession
+    handleAssistantSend: (req: ServerRequest, res: ServerResponse) => handleAssistantSendRequest(deps, req, res),
+    handleAssistantSession: (req: ServerRequest, res: ServerResponse, url: URL) =>
+      handleAssistantSessionRequest(deps, req, res, url)
   };
 }

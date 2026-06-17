@@ -363,304 +363,332 @@ function createManualSlideOutline(placement: ManualSlidePlacement, title: string
   );
 }
 
+async function handleDeckContextUpdateRequest(
+  deps: DeckSlideHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const activePresentationId = activePresentationIdFromBody({});
+  assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
+  const context = updateDeckFields(deps.jsonObjectOrEmpty(body.deck));
+  deps.publishRuntimeState();
+  deps.createJsonResponse(res, 200, { context });
+}
+
+async function handleDeckStructureApplyRequest(
+  deps: DeckSlideHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  if (typeof body.outline !== "string" || !body.outline.trim()) {
+    throw new Error("Expected a non-empty outline when applying a deck plan candidate");
+  }
+
+  const deckPatch = body.applyDeckPatch === false || !isJsonObject(body.deckPatch) ? null : body.deckPatch;
+  const sharedDeckUpdates = countSharedDeckUpdates(deckPatch);
+  const context = applyDeckStructurePlan({
+    deckPatch,
+    label: body.label,
+    outline: body.outline,
+    slides: body.slides,
+    summary: body.summary
+  });
+  const result = await applyDeckStructureCandidate({
+    deckPatch,
+    label: body.label,
+    outline: body.outline,
+    slides: body.slides,
+    summary: body.summary
+  }, deckStructurePromotionOptions(body));
+  markRuntimeBuildSucceeded(deps.runtimeState);
+  deps.updateWorkflowState({
+    message: deckStructureWorkflowMessage(body.label, result, sharedDeckUpdates),
+    ok: true,
+    operation: "apply-deck-structure",
+    stage: "completed",
+    status: "completed"
+  });
+  deps.runtimeState.lastError = null;
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    context,
+    insertedSlides: result.insertedSlides,
+    previews: result.previews,
+    indexUpdates: result.indexUpdates,
+    removedSlides: result.removedSlides,
+    replacedSlides: result.replacedSlides,
+    sharedDeckUpdates,
+    runtime: deps.serializeRuntimeState(),
+    slides: getSlides(),
+    titleUpdates: result.titleUpdates
+  });
+}
+
+async function handleDeckLengthPlanRequest(
+  deps: DeckSlideHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  deps.createJsonResponse(res, 200, {
+    plan: await planDeckLengthSemantic(body || {})
+  });
+}
+
+async function handleDeckLengthApplyRequest(
+  deps: DeckSlideHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const presentationId = activePresentationIdFromBody(body);
+  const result = applyDeckLengthPlan(body || {});
+  recordDerivedSlideset({
+    id: `length-${result.lengthProfile.activeCount}-${Date.now()}`,
+    purpose: `Scaled active deck to ${result.lengthProfile.activeCount} slide${result.lengthProfile.activeCount === 1 ? "" : "s"}.`,
+    resultPresentationId: presentationId,
+    sourcePresentationId: presentationId,
+    targetLength: result.lengthProfile.activeCount
+  }, { presentationId });
+  const context = updateDeckFields({
+    lengthProfile: result.lengthProfile
+  });
+  const previews = (await buildAndRenderDeck()).previews;
+
+  markRuntimeBuildSucceeded(deps.runtimeState);
+  deps.updateWorkflowState({
+    message: `Scaled deck to ${result.lengthProfile.activeCount} active slide${result.lengthProfile.activeCount === 1 ? "" : "s"} with ${result.skippedSlides} skipped, ${result.restoredSlides} restored, and ${result.insertedSlides || 0} inserted.`,
+    ok: true,
+    operation: "scale-deck-length",
+    stage: "completed",
+    status: "completed"
+  });
+  deps.runtimeState.lastError = null;
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState({ includeDetours: true }),
+    lengthProfile: result.lengthProfile,
+    previews,
+    insertedSlides: result.insertedSlides || 0,
+    restoredSlides: result.restoredSlides,
+    runtime: deps.serializeRuntimeState(),
+    skippedSlides: getSlides({ includeSkipped: true }).filter((slide: SlideSummary) => slide.skipped && !slide.archived),
+    skippedSlidesChanged: result.skippedSlides,
+    slides: result.slides
+  });
+}
+
+async function handleSkippedSlideRestoreRequest(
+  deps: DeckSlideHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const result = restoreSkippedSlides(body || {});
+  const context = updateDeckFields({
+    lengthProfile: result.lengthProfile
+  });
+  const previews = (await buildAndRenderDeck()).previews;
+
+  markRuntimeBuildSucceeded(deps.runtimeState);
+  deps.updateWorkflowState({
+    message: `Restored ${result.restoredSlides} skipped slide${result.restoredSlides === 1 ? "" : "s"}.`,
+    ok: true,
+    operation: "restore-skipped-slides",
+    stage: "completed",
+    status: "completed"
+  });
+  deps.runtimeState.lastError = null;
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState({ includeDetours: true }),
+    lengthProfile: result.lengthProfile,
+    previews,
+    restoredSlides: result.restoredSlides,
+    runtime: deps.serializeRuntimeState(),
+    skippedSlides: getSlides({ includeSkipped: true }).filter((slide: SlideSummary) => slide.skipped && !slide.archived),
+    slides: result.slides
+  });
+}
+
+async function handleManualSystemSlideCreateRequest(
+  deps: DeckSlideHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const activePresentationId = activePresentationIdFromBody({});
+  assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
+  const slideType = normalizeManualSlideType(body.slideType);
+  const title = sentenceValue(body.title, "New system");
+  const summary = sentenceValue(
+    body.summary,
+    "Describe the system boundary, the signal to watch, and the guardrails that keep the deck workflow repeatable."
+  );
+  const placement = resolveManualSlidePlacement(body);
+  const slideSpec = createManualSlideSpecForType({ body, slideType, summary, targetIndex: placement.targetIndex, title });
+  const created = insertStructuredSlide(slideSpec, placement.targetIndex);
+  const allSlidesAfterInsert = requireNavigableSlides(getSlides({ includeSkipped: true }));
+  const navigation = createManualSlideNavigation({ allSlidesAfterInsert, createdId: created.id, placement, title });
+  const outline = createManualSlideOutline(placement, title);
+
+  updateDeckFields({ navigation, outline });
+  const context = updateSlideContext(created.id, manualSlideContext({
+    createAsDetour: placement.createAsDetour,
+    parentSlide: placement.parentSlide,
+    slideType,
+    summary,
+    title
+  }));
+  const previews = (await buildAndRenderDeck()).previews;
+
+  markRuntimeBuildSucceeded(deps.runtimeState);
+  const workflow = manualSlideWorkflow(slideType, title, placement.createAsDetour);
+  deps.updateWorkflowState({
+    message: workflow.message,
+    ok: true,
+    operation: workflow.operation,
+    slideId: created.id,
+    stage: "completed",
+    status: "completed"
+  });
+  deps.runtimeState.lastError = null;
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState({ includeDetours: true }),
+    insertedSlideId: created.id,
+    previews,
+    runtime: deps.serializeRuntimeState(),
+    slide: getSlide(created.id),
+    slideSpec: created.slideSpec,
+    slides: getSlides()
+  });
+}
+
+async function handleManualSlideDeleteRequest(
+  deps: DeckSlideHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  if (typeof body.slideId !== "string" || !body.slideId) {
+    throw new Error("Expected a slideId to remove");
+  }
+
+  const activePresentationId = activePresentationIdFromBody({});
+  assertBaseVersion(getSlideVersion(activePresentationId, body.slideId), body.baseVersion, "Slide");
+  const removed = archiveStructuredSlide(body.slideId);
+  const currentContext = getDeckContext();
+  const navigation = removeSlideFromNavigation(
+    currentContext.deck && currentContext.deck.navigation,
+    getSlides({ includeArchived: true, includeSkipped: true }),
+    removed.id
+  );
+  const outline = renumberOutlineWithoutIndex(currentContext.deck && currentContext.deck.outline, removed.index);
+  const context = updateDeckFields({ navigation, outline });
+  const previews = (await buildAndRenderDeck()).previews;
+  const remainingSlides = getSlides();
+  const selected = remainingSlides[Math.min(Math.max(removed.index - 1, 0), remainingSlides.length - 1)] || remainingSlides[0] || null;
+
+  markRuntimeBuildSucceeded(deps.runtimeState);
+  deps.updateWorkflowState({
+    message: `Removed slide ${removed.title} from the deck.`,
+    ok: true,
+    operation: "remove-slide",
+    slideId: removed.id,
+    stage: "completed",
+    status: "completed"
+  });
+  deps.runtimeState.lastError = null;
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState({ includeDetours: true }),
+    previews,
+    removedSlideId: removed.id,
+    runtime: deps.serializeRuntimeState(),
+    selectedSlideId: selected ? selected.id : null,
+    slides: remainingSlides
+  });
+}
+
+async function handleManualSlidesReorderRequest(
+  deps: DeckSlideHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const reorderedSlides = reorderActiveSlides(body.slideIds);
+  const orderIndex = new Map<string, number>();
+  reorderedSlides.forEach((slide: SlideSummary, index: number) => {
+    if (typeof slide.id === "string") {
+      orderIndex.set(slide.id, index);
+    }
+  });
+  const indexFor = (slideId: string): number => orderIndex.get(slideId) ?? Number.MAX_SAFE_INTEGER;
+  const currentContext = getDeckContext();
+  const currentNavigation = normalizeDeckNavigation(currentContext.deck && currentContext.deck.navigation, reorderedSlides);
+  const navigation = {
+    ...currentNavigation,
+    coreSlideIds: [...currentNavigation.coreSlideIds].sort((left, right) => indexFor(left) - indexFor(right)),
+    detours: currentNavigation.detours.map((detour: { label?: string; parentId: string; slideIds: string[] }) => ({
+      ...detour,
+      slideIds: [...detour.slideIds].sort((left, right) => indexFor(left) - indexFor(right))
+    }))
+  };
+  const context = updateDeckFields({ navigation });
+  const previews = (await buildAndRenderDeck()).previews;
+  const selected = typeof body.selectedSlideId === "string"
+    ? reorderedSlides.find((slide: SlideSummary) => slide.id === body.selectedSlideId) || reorderedSlides[0] || null
+    : reorderedSlides[0] || null;
+
+  markRuntimeBuildSucceeded(deps.runtimeState);
+  deps.updateWorkflowState({
+    message: "Reordered slides in the active deck.",
+    ok: true,
+    operation: "reorder-slides",
+    slideId: selected ? selected.id : null,
+    stage: "completed",
+    status: "completed"
+  });
+  deps.runtimeState.lastError = null;
+  deps.publishRuntimeState();
+
+  deps.createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState({ includeDetours: true }),
+    previews,
+    runtime: deps.serializeRuntimeState(),
+    selectedSlideId: selected ? selected.id : null,
+    slides: reorderedSlides
+  });
+}
+
 export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
-  const {
-    createJsonResponse,
-    jsonObjectOrEmpty,
-    publishRuntimeState,
-    readJsonBody,
-    runtimeState,
-    serializeRuntimeState,
-    updateWorkflowState
-  } = deps;
-
-  async function handleDeckContextUpdate(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const activePresentationId = activePresentationIdFromBody({});
-    assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
-    const context = updateDeckFields(jsonObjectOrEmpty(body.deck));
-    publishRuntimeState();
-    createJsonResponse(res, 200, { context });
-  }
-
-  async function handleDeckStructureApply(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    if (typeof body.outline !== "string" || !body.outline.trim()) {
-      throw new Error("Expected a non-empty outline when applying a deck plan candidate");
-    }
-
-    const deckPatch = body.applyDeckPatch === false || !isJsonObject(body.deckPatch) ? null : body.deckPatch;
-    const sharedDeckUpdates = countSharedDeckUpdates(deckPatch);
-    const context = applyDeckStructurePlan({
-      deckPatch,
-      label: body.label,
-      outline: body.outline,
-      slides: body.slides,
-      summary: body.summary
-    });
-    const result = await applyDeckStructureCandidate({
-      deckPatch,
-      label: body.label,
-      outline: body.outline,
-      slides: body.slides,
-      summary: body.summary
-    }, deckStructurePromotionOptions(body));
-    markRuntimeBuildSucceeded(runtimeState);
-    updateWorkflowState({
-      message: deckStructureWorkflowMessage(body.label, result, sharedDeckUpdates),
-      ok: true,
-      operation: "apply-deck-structure",
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      context,
-      insertedSlides: result.insertedSlides,
-      previews: result.previews,
-      indexUpdates: result.indexUpdates,
-      removedSlides: result.removedSlides,
-      replacedSlides: result.replacedSlides,
-      sharedDeckUpdates,
-      runtime: serializeRuntimeState(),
-      slides: getSlides(),
-      titleUpdates: result.titleUpdates
-    });
-  }
-
-  async function handleDeckLengthPlan(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    createJsonResponse(res, 200, {
-      plan: await planDeckLengthSemantic(body || {})
-    });
-  }
-
-  async function handleDeckLengthApply(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const presentationId = activePresentationIdFromBody(body);
-    const result = applyDeckLengthPlan(body || {});
-    recordDerivedSlideset({
-      id: `length-${result.lengthProfile.activeCount}-${Date.now()}`,
-      purpose: `Scaled active deck to ${result.lengthProfile.activeCount} slide${result.lengthProfile.activeCount === 1 ? "" : "s"}.`,
-      resultPresentationId: presentationId,
-      sourcePresentationId: presentationId,
-      targetLength: result.lengthProfile.activeCount
-    }, { presentationId });
-    const context = updateDeckFields({
-      lengthProfile: result.lengthProfile
-    });
-    const previews = (await buildAndRenderDeck()).previews;
-
-    markRuntimeBuildSucceeded(runtimeState);
-    updateWorkflowState({
-      message: `Scaled deck to ${result.lengthProfile.activeCount} active slide${result.lengthProfile.activeCount === 1 ? "" : "s"} with ${result.skippedSlides} skipped, ${result.restoredSlides} restored, and ${result.insertedSlides || 0} inserted.`,
-      ok: true,
-      operation: "scale-deck-length",
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      context,
-      domPreview: getDomPreviewState({ includeDetours: true }),
-      lengthProfile: result.lengthProfile,
-      previews,
-      insertedSlides: result.insertedSlides || 0,
-      restoredSlides: result.restoredSlides,
-      runtime: serializeRuntimeState(),
-      skippedSlides: getSlides({ includeSkipped: true }).filter((slide: SlideSummary) => slide.skipped && !slide.archived),
-      skippedSlidesChanged: result.skippedSlides,
-      slides: result.slides
-    });
-  }
-
-  async function handleSkippedSlideRestore(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const result = restoreSkippedSlides(body || {});
-    const context = updateDeckFields({
-      lengthProfile: result.lengthProfile
-    });
-    const previews = (await buildAndRenderDeck()).previews;
-
-    markRuntimeBuildSucceeded(runtimeState);
-    updateWorkflowState({
-      message: `Restored ${result.restoredSlides} skipped slide${result.restoredSlides === 1 ? "" : "s"}.`,
-      ok: true,
-      operation: "restore-skipped-slides",
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      context,
-      domPreview: getDomPreviewState({ includeDetours: true }),
-      lengthProfile: result.lengthProfile,
-      previews,
-      restoredSlides: result.restoredSlides,
-      runtime: serializeRuntimeState(),
-      skippedSlides: getSlides({ includeSkipped: true }).filter((slide: SlideSummary) => slide.skipped && !slide.archived),
-      slides: result.slides
-    });
-  }
-
-  async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const activePresentationId = activePresentationIdFromBody({});
-    assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
-    const slideType = normalizeManualSlideType(body.slideType);
-    const title = sentenceValue(body.title, "New system");
-    const summary = sentenceValue(
-      body.summary,
-      "Describe the system boundary, the signal to watch, and the guardrails that keep the deck workflow repeatable."
-    );
-    const placement = resolveManualSlidePlacement(body);
-    const slideSpec = createManualSlideSpecForType({ body, slideType, summary, targetIndex: placement.targetIndex, title });
-    const created = insertStructuredSlide(slideSpec, placement.targetIndex);
-    const allSlidesAfterInsert = requireNavigableSlides(getSlides({ includeSkipped: true }));
-    const navigation = createManualSlideNavigation({ allSlidesAfterInsert, createdId: created.id, placement, title });
-    const outline = createManualSlideOutline(placement, title);
-
-    updateDeckFields({ navigation, outline });
-    const context = updateSlideContext(created.id, manualSlideContext({
-      createAsDetour: placement.createAsDetour,
-      parentSlide: placement.parentSlide,
-      slideType,
-      summary,
-      title
-    }));
-    const previews = (await buildAndRenderDeck()).previews;
-
-    markRuntimeBuildSucceeded(runtimeState);
-    const workflow = manualSlideWorkflow(slideType, title, placement.createAsDetour);
-    updateWorkflowState({
-      message: workflow.message,
-      ok: true,
-      operation: workflow.operation,
-      slideId: created.id,
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      context,
-      domPreview: getDomPreviewState({ includeDetours: true }),
-      insertedSlideId: created.id,
-      previews,
-      runtime: serializeRuntimeState(),
-      slide: getSlide(created.id),
-      slideSpec: created.slideSpec,
-      slides: getSlides()
-    });
-  }
-
-  async function handleManualSlideDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    if (typeof body.slideId !== "string" || !body.slideId) {
-      throw new Error("Expected a slideId to remove");
-    }
-
-    const activePresentationId = activePresentationIdFromBody({});
-    assertBaseVersion(getSlideVersion(activePresentationId, body.slideId), body.baseVersion, "Slide");
-    const removed = archiveStructuredSlide(body.slideId);
-    const currentContext = getDeckContext();
-    const navigation = removeSlideFromNavigation(
-      currentContext.deck && currentContext.deck.navigation,
-      getSlides({ includeArchived: true, includeSkipped: true }),
-      removed.id
-    );
-    const outline = renumberOutlineWithoutIndex(currentContext.deck && currentContext.deck.outline, removed.index);
-    const context = updateDeckFields({ navigation, outline });
-    const previews = (await buildAndRenderDeck()).previews;
-    const remainingSlides = getSlides();
-    const selected = remainingSlides[Math.min(Math.max(removed.index - 1, 0), remainingSlides.length - 1)] || remainingSlides[0] || null;
-
-    markRuntimeBuildSucceeded(runtimeState);
-    updateWorkflowState({
-      message: `Removed slide ${removed.title} from the deck.`,
-      ok: true,
-      operation: "remove-slide",
-      slideId: removed.id,
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      context,
-      domPreview: getDomPreviewState({ includeDetours: true }),
-      previews,
-      removedSlideId: removed.id,
-      runtime: serializeRuntimeState(),
-      selectedSlideId: selected ? selected.id : null,
-      slides: remainingSlides
-    });
-  }
-
-  async function handleManualSlidesReorder(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const reorderedSlides = reorderActiveSlides(body.slideIds);
-    const orderIndex = new Map<string, number>();
-    reorderedSlides.forEach((slide: SlideSummary, index: number) => {
-      if (typeof slide.id === "string") {
-        orderIndex.set(slide.id, index);
-      }
-    });
-    const indexFor = (slideId: string): number => orderIndex.get(slideId) ?? Number.MAX_SAFE_INTEGER;
-    const currentContext = getDeckContext();
-    const currentNavigation = normalizeDeckNavigation(currentContext.deck && currentContext.deck.navigation, reorderedSlides);
-    const navigation = {
-      ...currentNavigation,
-      coreSlideIds: [...currentNavigation.coreSlideIds].sort((left, right) => indexFor(left) - indexFor(right)),
-      detours: currentNavigation.detours.map((detour: { label?: string; parentId: string; slideIds: string[] }) => ({
-        ...detour,
-        slideIds: [...detour.slideIds].sort((left, right) => indexFor(left) - indexFor(right))
-      }))
-    };
-    const context = updateDeckFields({ navigation });
-    const previews = (await buildAndRenderDeck()).previews;
-    const selected = typeof body.selectedSlideId === "string"
-      ? reorderedSlides.find((slide: SlideSummary) => slide.id === body.selectedSlideId) || reorderedSlides[0] || null
-      : reorderedSlides[0] || null;
-
-    markRuntimeBuildSucceeded(runtimeState);
-    updateWorkflowState({
-      message: "Reordered slides in the active deck.",
-      ok: true,
-      operation: "reorder-slides",
-      slideId: selected ? selected.id : null,
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    publishRuntimeState();
-
-    createJsonResponse(res, 200, {
-      context,
-      domPreview: getDomPreviewState({ includeDetours: true }),
-      previews,
-      runtime: serializeRuntimeState(),
-      selectedSlideId: selected ? selected.id : null,
-      slides: reorderedSlides
-    });
-  }
-
   return {
-    handleDeckContextUpdate,
-    handleDeckLengthApply,
-    handleDeckLengthPlan,
-    handleDeckStructureApply,
-    handleManualSlideDelete,
-    handleManualSlidesReorder,
-    handleManualSystemSlideCreate,
-    handleSkippedSlideRestore
+    handleDeckContextUpdate: (req: ServerRequest, res: ServerResponse) =>
+      handleDeckContextUpdateRequest(deps, req, res),
+    handleDeckLengthApply: (req: ServerRequest, res: ServerResponse) => handleDeckLengthApplyRequest(deps, req, res),
+    handleDeckLengthPlan: (req: ServerRequest, res: ServerResponse) => handleDeckLengthPlanRequest(deps, req, res),
+    handleDeckStructureApply: (req: ServerRequest, res: ServerResponse) =>
+      handleDeckStructureApplyRequest(deps, req, res),
+    handleManualSlideDelete: (req: ServerRequest, res: ServerResponse) =>
+      handleManualSlideDeleteRequest(deps, req, res),
+    handleManualSlidesReorder: (req: ServerRequest, res: ServerResponse) =>
+      handleManualSlidesReorderRequest(deps, req, res),
+    handleManualSystemSlideCreate: (req: ServerRequest, res: ServerResponse) =>
+      handleManualSystemSlideCreateRequest(deps, req, res),
+    handleSkippedSlideRestore: (req: ServerRequest, res: ServerResponse) =>
+      handleSkippedSlideRestoreRequest(deps, req, res)
   };
 }

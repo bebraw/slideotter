@@ -54,12 +54,67 @@ function activePresentationIdFromBody(body: JsonObject): string {
   return bodyPresentationId || String(presentations.activePresentationId || "");
 }
 
-export function createSlideEditHandlers(deps: SlideEditHandlerDependencies) {
+async function handleSlideSourceUpdateRequest(
+  deps: SlideEditHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse,
+  slideId: string
+): Promise<void> {
+  const {
+    createJsonResponse,
+    describeStructuredSlide,
+    isVisualThemePayload,
+    publishRuntimeState,
+    readJsonBody,
+    runtimeState
+  } = deps;
+
+  const body = await readJsonBody(req);
+  if (typeof body.source !== "string") {
+    throw new Error("Expected a string field named source");
+  }
+
+  const slide = getSlide(slideId);
+  if (slide.structured) {
+    throw new Error("Raw source editing is disabled for structured JSON slides.");
+  }
+
+  writeSlideSource(slideId, body.source);
+  const context = isVisualThemePayload(body.visualTheme)
+    ? updateDeckFields({ visualTheme: body.visualTheme })
+    : getDeckContext();
+  const previews = body.rebuild === false ? getPreviewManifest() : (await buildAndRenderDeck()).previews;
+
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+  publishRuntimeState();
+  const structured = describeStructuredSlide(slideId);
+
+  createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState({ includeDetours: true }),
+    previews,
+    slideSpec: structured.slideSpec,
+    slideSpecError: structured.slideSpecError,
+    structured: structured.structured,
+    slide: getSlide(slideId),
+    source: readSlideSource(slideId)
+  });
+}
+
+async function handleSlideSpecUpdateRequest(
+  deps: SlideEditHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse,
+  slideId: string
+): Promise<void> {
   const {
     createJsonResponse,
     describeStructuredSlide,
     isJsonObject,
-    isSlideSpecPayload,
     isVisualThemePayload,
     jsonObjectOrEmpty,
     publishRuntimeState,
@@ -68,126 +123,103 @@ export function createSlideEditHandlers(deps: SlideEditHandlerDependencies) {
     serializeSlideSpec
   } = deps;
 
-  async function handleSlideSourceUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-    const body = await readJsonBody(req);
-    if (typeof body.source !== "string") {
-      throw new Error("Expected a string field named source");
+  const body = await readJsonBody(req);
+  if (!body.slideSpec || typeof body.slideSpec !== "object" || Array.isArray(body.slideSpec)) {
+    throw new Error("Expected an object field named slideSpec");
+  }
+
+  const activePresentationId = activePresentationIdFromBody({});
+  assertBaseVersion(getSlideVersion(activePresentationId, slideId), body.baseVersion, "Slide");
+  const currentSlideSpec = readSlideSpec(slideId);
+  const nextSlideSpec = jsonObjectOrEmpty(body.slideSpec);
+  const selectionScope = normalizeSelectionScope(body.selectionScope, {
+    slideId,
+    slideSpec: currentSlideSpec
+  });
+  if (selectionScope) {
+    assertSelectionAnchorsCurrent(currentSlideSpec, selectionScope);
+    const requestedSelectionScope = isJsonObject(body.selectionScope) ? body.selectionScope : {};
+    if (!requestedSelectionScope.allowFamilyChange) {
+      assertPatchWithinSelectionScope(currentSlideSpec, nextSlideSpec, selectionScope);
     }
+  }
 
-    const slide = getSlide(slideId);
-    if (slide.structured) {
-      throw new Error("Raw source editing is disabled for structured JSON slides.");
-    }
+  writeSlideSpec(slideId, nextSlideSpec, { preservePlacement: body.preserveSlidePosition === true });
+  const context = isVisualThemePayload(body.visualTheme)
+    ? updateDeckFields({ visualTheme: body.visualTheme })
+    : getDeckContext();
+  const shouldRebuild = body.rebuild !== false;
+  const previews = shouldRebuild ? (await buildAndRenderDeck()).previews : getPreviewManifest();
 
-    writeSlideSource(slideId, body.source);
-    const context = isVisualThemePayload(body.visualTheme)
-      ? updateDeckFields({ visualTheme: body.visualTheme })
-      : getDeckContext();
-    const previews = body.rebuild === false ? getPreviewManifest() : (await buildAndRenderDeck()).previews;
-
+  if (shouldRebuild) {
     runtimeState.build = {
       ok: true,
       updatedAt: new Date().toISOString()
     };
-    runtimeState.lastError = null;
-    publishRuntimeState();
-    const structured = describeStructuredSlide(slideId);
-
-    createJsonResponse(res, 200, {
-      context,
-      domPreview: getDomPreviewState({ includeDetours: true }),
-      previews,
-      slideSpec: structured.slideSpec,
-      slideSpecError: structured.slideSpecError,
-      structured: structured.structured,
-      slide: getSlide(slideId),
-      source: readSlideSource(slideId)
-    });
   }
+  runtimeState.lastError = null;
+  publishRuntimeState();
+  const structured = describeStructuredSlide(slideId);
 
-  async function handleSlideSpecUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-    const body = await readJsonBody(req);
-    if (!body.slideSpec || typeof body.slideSpec !== "object" || Array.isArray(body.slideSpec)) {
-      throw new Error("Expected an object field named slideSpec");
-    }
+  createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState({ includeDetours: true }),
+    previews,
+    slide: getSlide(slideId),
+    slideSpec: structured.slideSpec,
+    slideSpecError: structured.slideSpecError,
+    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
+    structured: structured.structured
+  });
+}
 
-    const activePresentationId = activePresentationIdFromBody({});
-    assertBaseVersion(getSlideVersion(activePresentationId, slideId), body.baseVersion, "Slide");
-    const currentSlideSpec = readSlideSpec(slideId);
-    const nextSlideSpec = jsonObjectOrEmpty(body.slideSpec);
-    const selectionScope = normalizeSelectionScope(body.selectionScope, {
-      slideId,
-      slideSpec: currentSlideSpec
-    });
-    if (selectionScope) {
-      assertSelectionAnchorsCurrent(currentSlideSpec, selectionScope);
-      const requestedSelectionScope = isJsonObject(body.selectionScope) ? body.selectionScope : {};
-      if (!requestedSelectionScope.allowFamilyChange) {
-        assertPatchWithinSelectionScope(currentSlideSpec, nextSlideSpec, selectionScope);
-      }
-    }
+async function handleSlideCurrentValidationRequest(
+  deps: SlideEditHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse,
+  slideId: string
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const slide = getSlide(slideId);
+  const slideSpec = deps.isSlideSpecPayload(body.slideSpec)
+    ? body.slideSpec
+    : readSlideSpec(slideId);
+  const validation = await validateSlideSpecInDom({
+    id: slide.id,
+    index: slide.index,
+    slideSpec,
+    title: slide.title
+  });
 
-    writeSlideSpec(slideId, nextSlideSpec, { preservePlacement: body.preserveSlidePosition === true });
-    const context = isVisualThemePayload(body.visualTheme)
-      ? updateDeckFields({ visualTheme: body.visualTheme })
-      : getDeckContext();
-    const shouldRebuild = body.rebuild !== false;
-    const previews = shouldRebuild ? (await buildAndRenderDeck()).previews : getPreviewManifest();
+  deps.createJsonResponse(res, 200, {
+    slideId,
+    validation
+  });
+}
 
-    if (shouldRebuild) {
-      runtimeState.build = {
-        ok: true,
-        updatedAt: new Date().toISOString()
-      };
-    }
-    runtimeState.lastError = null;
-    publishRuntimeState();
-    const structured = describeStructuredSlide(slideId);
+async function handleSlideContextUpdateRequest(
+  deps: SlideEditHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse,
+  slideId: string
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const context = updateSlideContext(slideId, body || {});
+  deps.createJsonResponse(res, 200, {
+    context,
+    slideContext: context.slides[slideId] || {}
+  });
+}
 
-    createJsonResponse(res, 200, {
-      context,
-      domPreview: getDomPreviewState({ includeDetours: true }),
-      previews,
-      slide: getSlide(slideId),
-      slideSpec: structured.slideSpec,
-      slideSpecError: structured.slideSpecError,
-      source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
-      structured: structured.structured
-    });
-  }
-
-  async function handleSlideCurrentValidation(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-    const body = await readJsonBody(req);
-    const slide = getSlide(slideId);
-    const slideSpec = isSlideSpecPayload(body.slideSpec)
-      ? body.slideSpec
-      : readSlideSpec(slideId);
-    const validation = await validateSlideSpecInDom({
-      id: slide.id,
-      index: slide.index,
-      slideSpec,
-      title: slide.title
-    });
-
-    createJsonResponse(res, 200, {
-      slideId,
-      validation
-    });
-  }
-
-  async function handleSlideContextUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-    const body = await readJsonBody(req);
-    const context = updateSlideContext(slideId, body || {});
-    createJsonResponse(res, 200, {
-      context,
-      slideContext: context.slides[slideId] || {}
-    });
-  }
-
+export function createSlideEditHandlers(deps: SlideEditHandlerDependencies) {
   return {
-    handleSlideContextUpdate,
-    handleSlideCurrentValidation,
-    handleSlideSourceUpdate,
-    handleSlideSpecUpdate
+    handleSlideContextUpdate: (req: ServerRequest, res: ServerResponse, slideId: string) =>
+      handleSlideContextUpdateRequest(deps, req, res, slideId),
+    handleSlideCurrentValidation: (req: ServerRequest, res: ServerResponse, slideId: string) =>
+      handleSlideCurrentValidationRequest(deps, req, res, slideId),
+    handleSlideSourceUpdate: (req: ServerRequest, res: ServerResponse, slideId: string) =>
+      handleSlideSourceUpdateRequest(deps, req, res, slideId),
+    handleSlideSpecUpdate: (req: ServerRequest, res: ServerResponse, slideId: string) =>
+      handleSlideSpecUpdateRequest(deps, req, res, slideId)
   };
 }
