@@ -1,6 +1,7 @@
 import { normalizeGeneratedSlideType, normalizePlanRole } from "./generated-plan-repair.ts";
 import { cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, normalizeVisibleText } from "./generated-text-hygiene.ts";
-import type { GeneratedPlan, GeneratedPlanSlide, JsonObject, SlideItem, TextPoint } from "./generated-slide-types.ts";
+import { firstUsefulItemBody, firstUsefulItemTitle } from "./generated-visible-item-helpers.ts";
+import type { GeneratedPlan, GeneratedPlanSlide, JsonObject, TextPoint } from "./generated-slide-types.ts";
 
 type GenerationMaterializationOptions = {
   startIndex?: unknown;
@@ -15,10 +16,6 @@ function isGeneratedPlanSlide(value: unknown): value is GeneratedPlanSlide {
   return isJsonObject(value);
 }
 
-function isSlideItem(value: unknown): value is SlideItem {
-  return isJsonObject(value);
-}
-
 function planSlideSignature(planSlide: GeneratedPlanSlide): string {
   const keyPoints = Array.isArray(planSlide.keyPoints) ? planSlide.keyPoints : [];
   return normalizeVisibleText([
@@ -26,20 +23,6 @@ function planSlideSignature(planSlide: GeneratedPlanSlide): string {
     planSlide && planSlide.summary,
     ...keyPoints.flatMap((point: TextPoint) => [point && point.title, point && point.body])
   ].filter(Boolean).join(" | ")).toLowerCase();
-}
-
-function firstUsefulItemTitle(items: unknown): string {
-  return (Array.isArray(items) ? items : [])
-    .filter(isSlideItem)
-    .map((item) => cleanText(item && item.title))
-    .find((title) => title && !isWeakLabel(title) && !isScaffoldLeak(title) && !isAuthoringMetaText(title)) || "";
-}
-
-function firstUsefulItemBody(items: unknown): string {
-  return (Array.isArray(items) ? items : [])
-    .filter(isSlideItem)
-    .map((item) => cleanText(item && item.body))
-    .find((body) => body && !isWeakLabel(body) && !isScaffoldLeak(body) && !isAuthoringMetaText(body)) || "";
 }
 
 function firstVisiblePlanValue(...values: unknown[]): string {
