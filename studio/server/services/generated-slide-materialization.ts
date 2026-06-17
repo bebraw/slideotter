@@ -594,6 +594,52 @@ function planTitleText(planSlide: GeneratedPlanSlide, limit: number, boundary: V
   throw new Error("Generated presentation plan is missing a usable slide title in the deck language.");
 }
 
+function contentSlideLayout(planSlide: GeneratedPlanSlide): string {
+  if (planSlide.role === "mechanics") {
+    return "spotlight";
+  }
+  if (planSlide.role === "concept" || planSlide.role === "context") {
+    return "statement";
+  }
+  return planSlide.role !== "tradeoff" ? "bullets" : "checklist";
+}
+
+function contentSlideArchetype(layout: string, media?: MaterialMedia): CompositionArchetype {
+  if (media) {
+    return "image-split";
+  }
+  if (layout === "spotlight" || layout === "statement" || layout === "bullets") {
+    return layout;
+  }
+  return "checklist";
+}
+
+function contentSlideFocus(layout: string, media?: MaterialMedia): string {
+  if (media) {
+    return "image and claim";
+  }
+  if (layout === "spotlight") {
+    return "keyword";
+  }
+  if (layout === "statement") {
+    return "claim";
+  }
+  return "bullets";
+}
+
+function contentSlideRationale(layout: string, media?: MaterialMedia): string {
+  if (media) {
+    return "Available material can carry the slide beside concise support.";
+  }
+  if (layout === "spotlight") {
+    return "Mechanics slides benefit from one dominant keyword.";
+  }
+  if (layout === "statement") {
+    return "Context slides read best as one claim with support.";
+  }
+  return "Plain bullets are the readable fallback for dense detail.";
+}
+
 function toContentSlide(planSlide: GeneratedPlanSlide, index: number, media?: MaterialMedia): SlideSpecObject {
   const boundary = createVisibleTextBoundary(planSlide);
   const prefix = slugPart(planSlide.title, `slide-${index}`);
@@ -602,34 +648,13 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number, media?: Ma
   const summary = planSummaryText(planSlide, 14, boundary);
   const title = planTitleText(planSlide, 8, boundary);
   const usePlainBullets = planSlide.role !== "tradeoff";
-  const layout = planSlide.role === "mechanics"
-    ? "spotlight"
-    : planSlide.role === "concept" || planSlide.role === "context"
-    ? "statement"
-    : usePlainBullets
-      ? "bullets"
-      : "checklist";
-  const archetype: CompositionArchetype = media
-    ? "image-split"
-    : layout === "spotlight"
-      ? "spotlight"
-      : layout === "statement"
-        ? "statement"
-        : layout === "bullets"
-          ? "bullets"
-          : "checklist";
+  const layout = contentSlideLayout(planSlide);
 
   return validateSlideSpecObject({
     compositionIntent: compositionIntent(
-      archetype,
-      media ? "image and claim" : layout === "spotlight" ? "keyword" : layout === "statement" ? "claim" : "bullets",
-      media
-        ? "Available material can carry the slide beside concise support."
-        : layout === "spotlight"
-          ? "Mechanics slides benefit from one dominant keyword."
-          : layout === "statement"
-            ? "Context slides read best as one claim with support."
-            : "Plain bullets are the readable fallback for dense detail."
+      contentSlideArchetype(layout, media),
+      contentSlideFocus(layout, media),
+      contentSlideRationale(layout, media)
     ),
     ...optionalEyebrow(planSlide, boundary),
     guardrails: secondaryPoints.map((point, guardrailIndex) => ({
@@ -683,6 +708,131 @@ function toPhotoGridSlide(planSlide: GeneratedPlanSlide, index: number, mediaIte
   });
 }
 
+function toCoverSlide(params: {
+  boundary: VisibleTextBoundary;
+  materialCandidates: MaterialCandidate[];
+  planSlide: GeneratedPlanSlide;
+  prefix: string;
+  title: string;
+  usedMaterialIds: Set<string>;
+}): SlideSpecObject {
+  const media = coverMediaTreatment(resolvePlanSlideMedia(params.planSlide, params.materialCandidates, params.usedMaterialIds));
+  const summary = planSummaryText(params.planSlide, 14, params.boundary);
+  let coverIntent = deriveCoverIntent(params.planSlide, media);
+  let cards = coverCardsForIntent(coverIntent, params.planSlide, params.boundary, media);
+  if (coverIntent === "agenda" && cards.length < 2) {
+    coverIntent = "statement";
+    cards = [];
+  }
+  const note = coverIntent === "agenda" || coverIntent === "proof"
+    ? coverNoteText(params.planSlide, summary, cards, params.boundary)
+    : "";
+  return validateSlideSpecObject({
+    ...(cards.length ? { cards: toSlideItems(cards, `${params.prefix}-card`) } : {}),
+    compositionIntent: compositionIntent(coverIntent, coverIntent === "identity" ? "brand" : coverIntent, "Opening slide uses a constrained cover archetype."),
+    coverIntent,
+    ...optionalEyebrow(params.planSlide, params.boundary),
+    layout: coverIntent,
+    ...(media ? { media } : {}),
+    ...(note ? { note } : {}),
+    narration: narrationForSlide(params.planSlide, params.boundary, params.title, summary, cards),
+    summary,
+    title: params.title,
+    type: "cover"
+  });
+}
+
+function toSummarySlide(params: {
+  boundary: VisibleTextBoundary;
+  materialCandidates: MaterialCandidate[];
+  planSlide: GeneratedPlanSlide;
+  prefix: string;
+  references: GeneratedReference[];
+  usedMaterialIds: Set<string>;
+}): SlideSpecObject {
+  const media = resolvePlanSlideMedia(params.planSlide, params.materialCandidates, params.usedMaterialIds);
+  const bulletPoints = summaryBulletPoints(params.planSlide, params.boundary);
+  const generatedResources = summaryResourcePoints(params.planSlide, params.boundary, bulletPoints);
+  const referenceByUrl: Map<string, GeneratedReference> = new Map(params.references.map((reference: GeneratedReference) => [String(reference.url || "").trim(), reference]));
+  const resourceItems = generatedResources.map((resource, resourceIndex) => {
+    const matchingReference = referenceByUrl.get(String(resource.body || "").trim());
+
+    return {
+      body: matchingReference ? matchingReference.url : sentence(resource.body, resource.body, 18),
+      id: `${params.prefix}-resource-${resourceIndex + 1}`,
+      title: sentence(resource.title, matchingReference && matchingReference.title || resource.title, 5)
+    };
+  });
+  const title = planTitleText(params.planSlide, 8, params.boundary);
+  const summary = planSummaryText(params.planSlide, 14, params.boundary);
+
+  return validateSlideSpecObject({
+    bullets: toSlideItems(bulletPoints, `${params.prefix}-bullet`),
+    compositionIntent: compositionIntent("checklist", "takeaway", "Summary slide closes with a compact action list."),
+    ...optionalEyebrow(params.planSlide, params.boundary),
+    layout: "checklist",
+    ...(media ? { media } : {}),
+    resources: resourceItems.map((resource, resourceIndex) => ({
+      body: sentence(resource.body, resource.body, 12),
+      id: `${params.prefix}-resource-${resourceIndex + 1}`,
+      title: sentence(resource.title, resource.title, 5)
+    })),
+    resourcesTitle: planFieldText(params.planSlide, "resourcesTitle", 5, params.boundary),
+    narration: narrationForSlide(params.planSlide, params.boundary, title, summary, bulletPoints),
+    summary,
+    title,
+    type: "summary"
+  });
+}
+
+function toPhotoGridSlideIfReady(planSlide: GeneratedPlanSlide, slideNumber: number, materialCandidates: MaterialCandidate[]): SlideSpecObject | null {
+  if (planSlide.type !== "photoGrid") {
+    return null;
+  }
+  const mediaItems = resolvePhotoGridMaterialSet(planSlide, materialCandidates);
+  return mediaItems.length >= 2 ? toPhotoGridSlide(planSlide, slideNumber, mediaItems) : null;
+}
+
+function shouldUseSummarySlide(planSlide: GeneratedPlanSlide, isLast: boolean, approvedTypePreserved: boolean, requestedType: string): boolean {
+  return isLast && (planSlide.type === "summary" || !approvedTypePreserved || !requestedType);
+}
+
+function materializePlanSlide(params: {
+  approvedTypePreserved: boolean;
+  boundary: VisibleTextBoundary;
+  isFirst: boolean;
+  isLast: boolean;
+  materialCandidates: MaterialCandidate[];
+  planSlide: GeneratedPlanSlide;
+  prefix: string;
+  references: GeneratedReference[];
+  requestedType: string;
+  slideNumber: number;
+  title: string;
+  usedMaterialIds: Set<string>;
+}): SlideSpecObject {
+  if (params.isFirst) {
+    return toCoverSlide(params);
+  }
+  if (shouldUseSummarySlide(params.planSlide, params.isLast, params.approvedTypePreserved, params.requestedType)) {
+    return toSummarySlide(params);
+  }
+  if (params.planSlide.role === "divider") {
+    return toDividerSlide(params.planSlide);
+  }
+
+  const photoGridSlide = toPhotoGridSlideIfReady(params.planSlide, params.slideNumber, params.materialCandidates);
+  if (photoGridSlide) {
+    return photoGridSlide;
+  }
+
+  const media = resolvePlanSlideMedia(params.planSlide, params.materialCandidates, params.usedMaterialIds);
+  return validateSlideSpecObject({
+    ...toContentSlide(params.planSlide, params.slideNumber, media),
+    ...(media ? { media } : {})
+  });
+}
+
 export function materializePlan(fields: GenerationFieldsForMaterialization, plan: GeneratedPlan, options: GenerationMaterializationOptions = {}): GeneratedSlideSpec[] {
   const normalizedPlan = normalizePlanForMaterialization(plan, options);
   const rawSlides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
@@ -710,83 +860,19 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
     const isLast = slideNumber === total && total > 1;
     const prefix = slugPart(planSlide.title, `slide-${slideNumber}`);
     const boundary = createVisibleTextBoundary(planSlide);
-
-    if (isFirst) {
-      const media = coverMediaTreatment(resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds));
-      const summary = planSummaryText(planSlide, 14, boundary);
-      let coverIntent = deriveCoverIntent(planSlide, media);
-      let cards = coverCardsForIntent(coverIntent, planSlide, boundary, media);
-      if (coverIntent === "agenda" && cards.length < 2) {
-        coverIntent = "statement";
-        cards = [];
-      }
-      const note = coverIntent === "agenda" || coverIntent === "proof"
-        ? coverNoteText(planSlide, summary, cards, boundary)
-        : "";
-      return validateSlideSpecObject({
-        ...(cards.length ? { cards: toSlideItems(cards, `${prefix}-card`) } : {}),
-        compositionIntent: compositionIntent(coverIntent, coverIntent === "identity" ? "brand" : coverIntent, "Opening slide uses a constrained cover archetype."),
-        coverIntent,
-        ...optionalEyebrow(planSlide, boundary),
-        layout: coverIntent,
-        ...(media ? { media } : {}),
-        ...(note ? { note } : {}),
-        narration: narrationForSlide(planSlide, boundary, title, summary, cards),
-        summary,
-        title,
-        type: "cover"
-      });
-    }
-
-    if (isLast && (planSlide.type === "summary" || !approvedTypePreserved || !requestedType)) {
-      const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
-      const bulletPoints = summaryBulletPoints(planSlide, boundary);
-      const generatedResources = summaryResourcePoints(planSlide, boundary, bulletPoints);
-      const referenceByUrl: Map<string, GeneratedReference> = new Map(references.map((reference: GeneratedReference) => [String(reference.url || "").trim(), reference]));
-      const resourceItems = generatedResources.map((resource, resourceIndex) => {
-        const matchingReference = referenceByUrl.get(String(resource.body || "").trim());
-
-        return {
-          body: matchingReference ? matchingReference.url : sentence(resource.body, resource.body, 18),
-          id: `${prefix}-resource-${resourceIndex + 1}`,
-          title: sentence(resource.title, matchingReference && matchingReference.title || resource.title, 5)
-        };
-      });
-
-      return validateSlideSpecObject({
-        bullets: toSlideItems(bulletPoints, `${prefix}-bullet`),
-        compositionIntent: compositionIntent("checklist", "takeaway", "Summary slide closes with a compact action list."),
-        ...optionalEyebrow(planSlide, boundary),
-        layout: "checklist",
-        ...(media ? { media } : {}),
-        resources: resourceItems.map((resource, resourceIndex) => ({
-          body: sentence(resource.body, resource.body, 12),
-          id: `${prefix}-resource-${resourceIndex + 1}`,
-          title: sentence(resource.title, resource.title, 5)
-        })),
-        resourcesTitle: planFieldText(planSlide, "resourcesTitle", 5, boundary),
-        narration: narrationForSlide(planSlide, boundary, planTitleText(planSlide, 8, boundary), planSummaryText(planSlide, 14, boundary), bulletPoints),
-        summary: planSummaryText(planSlide, 14, boundary),
-        title: planTitleText(planSlide, 8, boundary),
-        type: "summary"
-      });
-    }
-
-    if (planSlide.role === "divider") {
-      return toDividerSlide(planSlide);
-    }
-
-    if (planSlide.type === "photoGrid") {
-      const mediaItems = resolvePhotoGridMaterialSet(planSlide, materialCandidates);
-      if (mediaItems.length >= 2) {
-        return toPhotoGridSlide(planSlide, slideNumber, mediaItems);
-      }
-    }
-
-    const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
-    return validateSlideSpecObject({
-      ...toContentSlide(planSlide, slideNumber, media),
-      ...(media ? { media } : {})
+    return materializePlanSlide({
+      approvedTypePreserved,
+      boundary,
+      isFirst,
+      isLast,
+      materialCandidates,
+      planSlide,
+      prefix,
+      references,
+      requestedType,
+      slideNumber,
+      title,
+      usedMaterialIds
     });
   });
 }
