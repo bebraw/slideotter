@@ -30,10 +30,11 @@ async function renderPdfPages(targetDir: string, inputFile: string): Promise<str
   resetDir(targetDir);
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const data = new Uint8Array(fs.readFileSync(inputFile));
-  const document = await pdfjs.getDocument({
+  const loadingTask = pdfjs.getDocument({
     data,
     disableFontFace: true
-  }).promise;
+  });
+  const document = await loadingTask.promise;
 
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
     const page = await document.getPage(pageNumber);
@@ -49,7 +50,7 @@ async function renderPdfPages(targetDir: string, inputFile: string): Promise<str
   }
 
   await document.cleanup();
-  await document.destroy();
+  await loadingTask.destroy();
 
   const pages = listPages(targetDir);
   if (!pages.length) {

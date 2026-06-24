@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 const { exportDeckPdfFromDom } = require("../studio/server/services/dom-export.ts");
-const { getDomPreviewState } = require("../studio/server/services/dom-preview.ts");
+const { getDomPreviewState } = require("../studio/server/services/dom-preview-state.ts");
 
 async function main() {
   const { pdfFile } = await exportDeckPdfFromDom(getDomPreviewState());
