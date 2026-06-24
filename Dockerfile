@@ -1,4 +1,4 @@
-FROM node:24-bookworm AS dev
+FROM mcr.microsoft.com/playwright:v1.61.1-noble AS dev
 
 WORKDIR /app
 
@@ -10,7 +10,6 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 COPY package.json package-lock.json .npmrc ./
 COPY scripts/setup-git-hooks.mts ./scripts/setup-git-hooks.mts
 RUN npm ci
-RUN npx playwright install --with-deps chromium
 
 COPY . .
 
