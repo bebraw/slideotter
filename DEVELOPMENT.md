@@ -81,6 +81,8 @@ Run the full project quality gate, including render-baseline validation:
 npm run quality:gate
 ```
 
+Both quality-gate commands announce each phase and emit a 30-second heartbeat while a phase is still running. The fast gate stops after typechecking, service coverage, and static/browser validation; the full gate adds render-baseline validation.
+
 Run a Stryker mutation-test dry run after changing the mutation config or test command:
 
 ```bash

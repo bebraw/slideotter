@@ -11,7 +11,8 @@
       "2026-06-13-affected-unit-tests",
       "2026-06-13-relative-stryker-concurrency",
       "2026-06-14-agent-ci-warm-cache",
-      "2026-06-17-shared-affected-file-utils"
+      "2026-06-17-shared-affected-file-utils",
+      "2026-07-15-quality-gate-progress"
     ]
   },
   "main": "desktop/main.cjs",
@@ -71,8 +72,8 @@
     "validate:render": "npm run build && node scripts/validate-render.ts",
     "validate:all": "npm run validate && npm run validate:render",
     "quality:affected": "node scripts/run-affected-guardrails.mjs",
-    "quality:gate:fast": "node scripts/run-parallel.mjs typecheck test:coverage && npm run validate",
-    "quality:gate": "node scripts/run-parallel.mjs typecheck test:coverage && npm run validate && npm run validate:render",
+    "quality:gate:fast": "node scripts/run-quality-gate.ts --fast",
+    "quality:gate": "node scripts/run-quality-gate.ts",
     "package:build": "node scripts/build-package.mjs",
     "package:smoke": "node scripts/package-smoke.mjs",
     "desktop:dev": "npm run package:build && env -u ELECTRON_RUN_AS_NODE electron .",

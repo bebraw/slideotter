@@ -37,6 +37,8 @@ These diagnostics support review and refactoring decisions. They are not part of
 - `npm run quality:gate:fast`: typecheck, service coverage, and `npm run validate`.
 - `npm run quality:gate`: fast gate plus render-baseline validation.
 
+The quality-gate runner prints named phase transitions and a 30-second elapsed-time heartbeat without suppressing child-command output.
+
 ## Output Rules
 
 - Keep routine validation output concise.
