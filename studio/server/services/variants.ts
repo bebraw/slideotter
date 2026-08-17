@@ -150,7 +150,7 @@ function normalizeStoredVariant(variant: unknown): VariantRecord | null {
       slideSpec,
       source
     });
-  } catch (error) {
+  } catch {
     return null;
   }
 }

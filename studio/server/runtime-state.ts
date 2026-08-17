@@ -81,11 +81,11 @@ function publishSseEvent(event: string, payload: unknown): void {
   for (const subscriber of runtimeSubscribers) {
     try {
       writeSseEvent(subscriber, event, payload);
-    } catch (error) {
+    } catch {
       runtimeSubscribers.delete(subscriber);
       try {
         subscriber.end();
-      } catch (endError) {
+      } catch {
         // Ignore subscriber cleanup failures.
       }
     }
@@ -166,7 +166,7 @@ function recordWorkflowEvent(workflow: WorkflowEvent | null): void {
 
 export function updateWorkflowState(nextWorkflow: WorkflowEvent): void {
   runtimeState.workflow = {
-    ...(runtimeState.workflow || {}),
+    ...runtimeState.workflow,
     ...nextWorkflow,
     updatedAt: new Date().toISOString()
   };
@@ -240,7 +240,7 @@ export function registerRuntimeStream(
   const heartbeat = setInterval(() => {
     try {
       res.write(": keep-alive\n\n");
-    } catch (error) {
+    } catch {
       clearInterval(heartbeat);
     }
   }, 15000);

@@ -58,7 +58,7 @@ export async function readJsonBody(req: ServerRequest): Promise<JsonObject> {
 
   try {
     return JSON.parse(body);
-  } catch (error) {
+  } catch {
     throw new Error("Request body must be valid JSON");
   }
 }

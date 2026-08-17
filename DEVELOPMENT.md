@@ -82,7 +82,7 @@ Run the full project quality gate, including render-baseline validation:
 npm run quality:gate
 ```
 
-Both quality-gate commands announce each phase and emit a 30-second heartbeat while a phase is still running. The fast gate stops after typechecking, service coverage, and static/browser validation; the full gate adds render-baseline validation.
+Both quality-gate commands announce each phase and emit a 30-second heartbeat while a phase is still running. The fast gate stops after Oxlint correctness checks, typechecking, service coverage, and static/browser validation; the full gate adds render-baseline validation.
 
 Run a Stryker mutation-test dry run after changing the mutation config or test command:
 
@@ -131,7 +131,7 @@ npm run baseline:render
 Use focused checks while iterating, then run the full gate when the change affects behavior, rendering, presentation output, or shared validation.
 
 - docs only: `npm run validate:docs`
-- TypeScript-only changes: `npm run typecheck`
+- JavaScript or TypeScript changes: `npm run lint` and `npm run typecheck`
 - service API changes: `npm run typecheck` and `npm test`
 - service behavior or branch-heavy guard changes: `npm run test:mutation:dry`, then `npm run test:mutation` when the dry run is clean
 - prompt, schema, or deck-plan changes: `npm run validate:deck-plan-fixture`

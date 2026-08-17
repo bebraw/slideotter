@@ -231,7 +231,7 @@ function parseJsonStringArray(value: unknown): string[] {
 
   try {
     return asStringArray(JSON.parse(value));
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -243,7 +243,7 @@ function parseJsonObject(value: unknown): CloudRecord {
 
   try {
     return asRecord(JSON.parse(value)) || {};
-  } catch (error) {
+  } catch {
     return {};
   }
 }
@@ -270,7 +270,7 @@ function extractProviderCandidate(value: unknown): CloudRecord {
         if (parsed) {
           return asRecord(parsed.candidate) || parsed;
         }
-      } catch (error) {
+      } catch {
         return {
           text: responseText
         };
@@ -286,7 +286,7 @@ function extractProviderCandidate(value: unknown): CloudRecord {
   try {
     const parsed = asRecord(JSON.parse(text));
     return parsed || { text };
-  } catch (error) {
+  } catch {
     return { text };
   }
 }
@@ -308,7 +308,7 @@ async function readJsonRequest(request: Request): Promise<Record<string, unknown
   try {
     const value = await request.json();
     return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : badRequestResponse("Request body must be a JSON object.");
-  } catch (error) {
+  } catch {
     return badRequestResponse("Request body must be valid JSON.");
   }
 }

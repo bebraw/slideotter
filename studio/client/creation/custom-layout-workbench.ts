@@ -858,7 +858,7 @@ export namespace StudioClientCustomLayoutWorkbench {
           try {
             await navigator.clipboard.writeText(formatted);
             elements.operationStatus.textContent = "Copied selected layout JSON.";
-          } catch (error) {
+          } catch {
             elements.operationStatus.textContent = "Exported selected layout JSON.";
           }
         } else {
@@ -886,7 +886,7 @@ export namespace StudioClientCustomLayoutWorkbench {
           try {
             await navigator.clipboard.writeText(formatted);
             elements.operationStatus.textContent = `Copied ${scope === "favorite" ? "favorite" : "deck"} layout pack JSON.`;
-          } catch (error) {
+          } catch {
             elements.operationStatus.textContent = `Exported ${scope === "favorite" ? "favorite" : "deck"} layout pack JSON.`;
           }
         } else {

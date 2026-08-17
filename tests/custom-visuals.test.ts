@@ -45,7 +45,7 @@ test.after(() => {
   for (const id of createdPresentationIds) {
     try {
       deletePresentation(id);
-    } catch (error) {
+    } catch {
       // Cleanup is best effort so the original test failure remains visible.
     }
   }

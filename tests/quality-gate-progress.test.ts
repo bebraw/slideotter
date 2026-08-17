@@ -37,8 +37,8 @@ test("runs every phase with visible transitions", async () => {
   });
 
   assert.equal(exitCode, 0);
-  assert.deepEqual(labels, ["typecheck and service coverage", "static and browser validation"]);
-  assert.match(logs[0] || "", /1\/2 Starting typecheck and service coverage/);
+  assert.deepEqual(labels, ["lint, typecheck, and service coverage", "static and browser validation"]);
+  assert.match(logs[0] || "", /1\/2 Starting lint, typecheck, and service coverage/);
   assert.match(logs.at(-1) || "", /Completed all 2 phases/);
 });
 
@@ -56,7 +56,7 @@ test("stops after the first failing phase", async () => {
   });
 
   assert.equal(exitCode, 7);
-  assert.deepEqual(labels, ["typecheck and service coverage", "static and browser validation"]);
+  assert.deepEqual(labels, ["lint, typecheck, and service coverage", "static and browser validation"]);
 });
 
 test("formats elapsed quality gate time compactly", () => {

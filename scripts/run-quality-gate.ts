@@ -35,9 +35,9 @@ const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
 const sharedQualityGateSteps: QualityGateStep[] = [
   {
-    args: ["scripts/run-parallel.mjs", "typecheck", "test:coverage"],
+    args: ["scripts/run-parallel.mjs", "lint", "typecheck", "test:coverage"],
     command: process.execPath,
-    label: "typecheck and service coverage"
+    label: "lint, typecheck, and service coverage"
   },
   {
     args: ["run", "validate"],

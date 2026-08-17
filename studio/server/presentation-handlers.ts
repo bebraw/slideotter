@@ -420,7 +420,7 @@ async function runPresentationCreateRequest(params: PresentationCreateRequestPar
     if (presentation && presentation.id) {
       try {
         deletePresentation(presentation.id);
-      } catch (_cleanupError) {
+      } catch {
         // Leave the original generation failure visible.
       }
     }

@@ -269,7 +269,7 @@ function cleanupContextPresentations(): void {
 
     try {
       deletePresentation(id);
-    } catch (error) {
+    } catch {
       // Keep cleanup best-effort so the original assertion failure remains visible.
     }
   }

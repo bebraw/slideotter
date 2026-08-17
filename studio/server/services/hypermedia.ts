@@ -174,7 +174,7 @@ function versionFromFiles(files: string[]): string {
     try {
       const stat = fs.statSync(fileName);
       return `${path.basename(fileName)}:${Math.trunc(stat.mtimeMs)}:${stat.size}`;
-    } catch (error) {
+    } catch {
       return `${path.basename(fileName)}:missing`;
     }
   });

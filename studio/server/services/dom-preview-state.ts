@@ -61,7 +61,7 @@ function getDomPreviewState(options: DomPreviewOptions = {}) {
         slideSpec: hydrateCustomVisualSlideSpec(readSlideSpec(slide.id, { presentationId }), { presentationId }),
         title: slide.title
       };
-    } catch (error) {
+    } catch {
       return {
         id: slide.id,
         index: slide.index,

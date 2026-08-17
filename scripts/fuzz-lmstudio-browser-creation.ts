@@ -67,7 +67,7 @@ function cleanupFuzzPresentations(activePresentationId: string | null | undefine
   for (const id of existingFuzzIds) {
     try {
       deletePresentation(id);
-    } catch (error) {
+    } catch {
       // The presentation may not exist if a previous cleanup already removed it.
     }
   }
@@ -75,7 +75,7 @@ function cleanupFuzzPresentations(activePresentationId: string | null | undefine
   if (activePresentationId) {
     try {
       setActivePresentation(activePresentationId);
-    } catch (error) {
+    } catch {
       // Leave the registry-selected fallback if the original deck disappeared.
     }
   }
@@ -125,7 +125,7 @@ async function currentState(page: import("playwright").Page): Promise<StatePaylo
 function readJsonFile(filePath: string): JsonRecord {
   try {
     return asRecord(JSON.parse(fs.readFileSync(filePath, "utf8")));
-  } catch (error) {
+  } catch {
     return {};
   }
 }
@@ -186,7 +186,7 @@ async function runBrowserCreationFuzz(): Promise<void> {
                 .filter((material) => typeof material.dataUrl === "string" && material.dataUrl.startsWith("data:image/"))
                 .length
               : 0;
-          } catch (error) {
+          } catch {
             createRequestMaterialCount = 0;
             createRequestMaterialDataUrlCount = 0;
           }

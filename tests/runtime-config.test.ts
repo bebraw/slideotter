@@ -22,7 +22,7 @@ function runNode(args: string[], options: RunNodeOptions = {}) {
     encoding: "utf8",
     env: {
       ...process.env,
-      ...(options.env || {})
+      ...options.env
     }
   });
 

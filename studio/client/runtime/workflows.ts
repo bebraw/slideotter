@@ -53,7 +53,7 @@ export namespace StudioClientWorkflows {
 
   function setLocalWorkflow(state: StudioClientState.State, workflow: StudioClientState.WorkflowState): void {
     state.runtime = {
-      ...(state.runtime || {}),
+      ...state.runtime,
       workflow: {
         ...workflow,
         updatedAt: new Date().toISOString()

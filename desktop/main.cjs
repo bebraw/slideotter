@@ -166,7 +166,7 @@ function isLocalStudioUrl(targetUrl, pathPrefix = "") {
     const parsed = new URL(targetUrl);
     const expected = new URL(serverUrl);
     return parsed.origin === expected.origin && parsed.pathname.startsWith(pathPrefix);
-  } catch (error) {
+  } catch {
     return false;
   }
 }

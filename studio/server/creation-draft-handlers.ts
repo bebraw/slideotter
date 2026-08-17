@@ -186,8 +186,8 @@ function mergeDeckPlan(
 
   const maxSlides = Math.max(baseSlides.length, overrideSlides.length);
   const slides = Array.from({ length: maxSlides }, (_unused, index) => ({
-    ...(baseSlides[index] || {}),
-    ...(overrideSlides[index] || {})
+    ...baseSlides[index],
+    ...overrideSlides[index]
   }));
 
   return {
@@ -210,6 +210,7 @@ function buildSavedCreationDraftFields(
   current: CreationDraft
 ): CreationFields {
   return {
+    // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- Persisted draft fields cross an unknown JSON boundary.
     ...(current.fields || {}),
     ...deps.normalizeCreationFields(deps.isJsonObject(body.fields) ? body.fields : body)
   };
@@ -328,6 +329,7 @@ function getOutlineSlideRequest(
 
   const fields: CreationFields = {
     ...deps.normalizeCreationFields({
+      // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- Persisted draft fields cross an unknown JSON boundary.
       ...(current.fields || {}),
       ...(deps.isJsonObject(body.fields) ? body.fields : {})
     }),

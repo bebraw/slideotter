@@ -691,7 +691,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         try {
           const payload = JSON.parse(event.data);
           applyRuntimeUpdate(payload.runtime);
-        } catch (error) {
+        } catch {
           // Ignore malformed stream messages and keep the connection alive.
         }
       });
@@ -699,7 +699,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         try {
           const payload = JSON.parse(event.data);
           applyWorkflowEvent(payload.workflowEvent);
-        } catch (error) {
+        } catch {
           // Ignore malformed stream messages and keep the connection alive.
         }
       });
@@ -707,7 +707,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         try {
           const payload = JSON.parse(event.data);
           applyCreationDraftUpdate(payload.creationDraft);
-        } catch (error) {
+        } catch {
           // Ignore malformed stream messages and keep the connection alive.
         }
       });

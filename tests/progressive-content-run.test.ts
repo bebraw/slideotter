@@ -230,7 +230,7 @@ function installLlmMock(handler: LlmMockHandler): void {
   process.env.LMSTUDIO_MODEL = "progressive-content-run-test";
 
   global.fetch = async (url: string | URL | Request, init?: RequestInit) => {
-    if (!/\/chat\/completions$/.test(String(url))) {
+    if (!String(url).endsWith("/chat/completions")) {
       return originalFetch(url, init);
     }
 
@@ -355,7 +355,7 @@ function cleanupGeneratedPresentations(): void {
     .forEach((presentation: PresentationSummary) => {
       try {
         deletePresentation(presentation.id);
-      } catch (error) {
+      } catch {
         // Keep cleanup best-effort so assertion failures stay visible.
       }
     });

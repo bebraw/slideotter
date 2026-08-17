@@ -124,7 +124,7 @@ export async function importContentRunArtifacts(
         title: material.title,
         url: material.url
       }));
-    } catch (error) {
+    } catch {
       // Keep accepting the partial deck even if a searched image is unavailable.
     }
   }

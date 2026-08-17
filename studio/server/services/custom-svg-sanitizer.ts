@@ -84,7 +84,7 @@ const urlReferencePattern = /^url\(\s*#[a-zA-Z][a-zA-Z0-9_-]*\s*\)$/;
 const pathDataPattern = /^[a-zA-Z0-9.,+\-\s]+$/;
 const transformPattern = /^[a-zA-Z0-9(),.+\-\s]+$/;
 const numericPattern = /^[0-9.,+\-%\s]+$/;
-const tokenTextPattern = /^[a-zA-Z0-9#().,;: %_+\-]+$/;
+const tokenTextPattern = /^[a-zA-Z0-9#().,;: %_+-]+$/;
 const numericAttributes = new Set([
   "dx",
   "dy",

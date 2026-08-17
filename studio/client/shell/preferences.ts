@@ -12,7 +12,7 @@ export namespace StudioClientPreferences {
   export function loadDrawerOpen(key: DrawerPreferenceKey): boolean {
     try {
       return window.localStorage.getItem(drawerKeys[key]) === "true";
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -20,7 +20,7 @@ export namespace StudioClientPreferences {
   export function persistDrawerOpen(key: DrawerPreferenceKey, open: boolean): void {
     try {
       window.localStorage.setItem(drawerKeys[key], String(open));
-    } catch (error) {
+    } catch {
       // Ignore unavailable localStorage in restricted environments.
     }
   }
@@ -43,7 +43,7 @@ export namespace StudioClientPreferences {
   export function persistCurrentPage(page: CurrentPage): void {
     try {
       window.localStorage.setItem("studio.currentPage", page);
-    } catch (error) {
+    } catch {
       // Ignore unavailable localStorage in restricted environments.
     }
   }
@@ -54,7 +54,7 @@ export namespace StudioClientPreferences {
       if (value === "dark" || value === "light") {
         return value;
       }
-    } catch (error) {
+    } catch {
       // Ignore unavailable localStorage in restricted environments.
     }
 
@@ -66,7 +66,7 @@ export namespace StudioClientPreferences {
   export function persistAppTheme(theme: AppTheme): void {
     try {
       window.localStorage.setItem("studio.appTheme", theme);
-    } catch (error) {
+    } catch {
       // Ignore unavailable localStorage in restricted environments.
     }
   }

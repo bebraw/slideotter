@@ -297,7 +297,7 @@ function normalizeMemoryItem(value: unknown): MemoryItem | null {
       updatedAt,
       usedBy: normalizeLinks(value.usedBy)
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }

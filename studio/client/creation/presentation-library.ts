@@ -135,7 +135,7 @@ export namespace StudioClientPresentationLibrary {
           day: "numeric",
           month: "short"
         }).format(date);
-      } catch (error) {
+      } catch {
         return date.toISOString().slice(0, 10);
       }
     }
@@ -278,7 +278,7 @@ export namespace StudioClientPresentationLibrary {
     function setLocalRebuildWorkflow(presentation: PresentationSummary): void {
       const message = `Rebuilding "${presentation.title || presentation.id}" from saved context...`;
       state.runtime = {
-        ...(state.runtime || {}),
+        ...state.runtime,
         workflow: {
           message,
           operation: "regenerate-presentation",

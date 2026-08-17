@@ -76,7 +76,7 @@ export namespace StudioClientWorkspaceState {
     activePresentation: StudioClientState.HypermediaResource | null
   ): void {
     state.hypermedia = {
-      ...(state.hypermedia || {}),
+      ...state.hypermedia,
       activePresentation,
       root: apiRoot
     };

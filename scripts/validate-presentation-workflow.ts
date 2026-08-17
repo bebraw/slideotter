@@ -65,7 +65,7 @@ function cleanupSmokePresentations(activePresentationId: string | null | undefin
   for (const id of existingSmokeIds) {
     try {
       deletePresentation(id);
-    } catch (error) {
+    } catch {
       // The fixture may not exist if the test failed before creating it.
     }
   }
@@ -73,7 +73,7 @@ function cleanupSmokePresentations(activePresentationId: string | null | undefin
   if (activePresentationId) {
     try {
       setActivePresentation(activePresentationId);
-    } catch (error) {
+    } catch {
       // Leave the registry-selected fallback if the original deck disappeared.
     }
   }

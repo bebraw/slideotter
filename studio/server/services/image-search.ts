@@ -262,7 +262,7 @@ async function importImageSearchResults(options: ImageSearchOptions = {}) {
         title: result.title,
         url: result.url
       }));
-    } catch (error) {
+    } catch {
       // Continue with other results; search providers often include occasional hotlink-hostile images.
     }
   }

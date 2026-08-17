@@ -1215,7 +1215,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       let outlinePlan: unknown = null;
       try {
         outlinePlan = JSON.parse(textarea.value);
-      } catch (error) {
+      } catch {
         throw new Error("Outline plan JSON is invalid.");
       }
     

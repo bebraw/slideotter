@@ -60,7 +60,7 @@ export function renumberOutlineWithInsert(outline: unknown, title: string, targe
   const cleanTitle = sentenceValue(title, "New slide");
   lines.splice(Math.max(0, targetIndex - 1), 0, cleanTitle);
   return lines.map((line, index) => {
-    const text = line.replace(/^\d+[\.)]\s*/, "").trim();
+    const text = line.replace(/^\d+[.)]\s*/, "").trim();
     return `${index + 1}. ${text}`;
   }).join("\n");
 }
@@ -69,7 +69,7 @@ export function renumberOutlineWithoutIndex(outline: unknown, targetIndex: numbe
   const lines = String(outline || "").split(/\n+/).map((line) => line.trim()).filter(Boolean);
   lines.splice(Math.max(0, targetIndex - 1), 1);
   return lines.map((line, index) => {
-    const text = line.replace(/^\d+[\.)]\s*/, "").trim();
+    const text = line.replace(/^\d+[.)]\s*/, "").trim();
     return `${index + 1}. ${text}`;
   }).join("\n");
 }

@@ -312,7 +312,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       const locks = updateOutlineLocks(getOutlineLocks(), index, locked);
 
       state.creationDraft = {
-        ...(state.creationDraft || {}),
+        ...state.creationDraft,
         outlineLocks: locks
       };
       return locks;
@@ -513,7 +513,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     function setLocalCreationWorkflow(operation: string, stage: string, message: string, status = "running"): void {
       clearPendingDraftSave();
       state.runtime = {
-        ...(state.runtime || {}),
+        ...state.runtime,
         workflow: {
           message,
           operation,

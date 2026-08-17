@@ -103,7 +103,7 @@ function normalizeAssistantSelection(selection: unknown, slideId: string) {
       slideId,
       slideSpec: readSlideSpec(slideId)
     });
-  } catch (error) {
+  } catch {
     return null;
   }
 }

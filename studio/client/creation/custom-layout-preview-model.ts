@@ -33,7 +33,7 @@ export function parseRequiredJson(source: unknown, emptyMessage: string, invalid
 
   try {
     return JSON.parse(trimmed);
-  } catch (error) {
+  } catch {
     throw new Error(invalidMessage);
   }
 }
@@ -49,7 +49,7 @@ export function parseOptionalLayoutDefinition(source: unknown): LayoutDefinition
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
       ? parsed as LayoutDefinition
       : null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

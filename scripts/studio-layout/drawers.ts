@@ -28,14 +28,12 @@ function requireRect(rect: RectMetrics | null, message: string): RectMetrics {
   return rect;
 }
 
-const drawerShortcuts: DrawerShortcut[] = [
-  ...listDrawerTools().map((tool) => ({
+const drawerShortcuts: DrawerShortcut[] = listDrawerTools().map((tool) => ({
     drawer: tool.drawerSelector,
     key: tool.shortcut,
     label: tool.label,
     toggle: tool.toggleSelector
-  }))
-];
+  }));
 const drawerSelectorList = listDrawerSelectors();
 
 function isMobileViewport(viewport: ViewportSize): boolean {

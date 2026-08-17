@@ -19,12 +19,14 @@ if (affectedFiles.every(isDocumentationFile)) {
 const nonDocumentationFiles = affectedFiles.filter((file) => !isDocumentationFile(file));
 
 if (nonDocumentationFiles.every(isUnitTestFile)) {
+  runOxlint(nonDocumentationFiles);
   console.log("Running affected unit test files...");
   run(repoRoot, "node", ["--test", "--test-concurrency=1", ...nonDocumentationFiles]);
   process.exit(0);
 }
 
 if (nonDocumentationFiles.every(isPresentationRenderFile)) {
+  runOxlint(nonDocumentationFiles);
   console.log("Running render validation for presentation-output changes...");
   run(repoRoot, "npm", ["run", "validate:render"]);
   process.exit(0);
@@ -32,6 +34,18 @@ if (nonDocumentationFiles.every(isPresentationRenderFile)) {
 
 console.log("Running fast quality gate for affected source or tooling changes...");
 run(repoRoot, "npm", ["run", "quality:gate:fast"]);
+
+function runOxlint(files) {
+  const lintFiles = files.filter(isLintFile);
+
+  if (lintFiles.length === 0) {
+    console.log("Oxlint skipped: no affected JavaScript or TypeScript files.");
+    return;
+  }
+
+  console.log("Running Oxlint for affected files...");
+  run(repoRoot, "npm", ["run", "lint", "--", ...lintFiles]);
+}
 
 function getInputFiles() {
   const cliFiles = process.argv.slice(2).filter((arg) => arg !== "--pre-push");
@@ -49,6 +63,10 @@ function isDocumentationFile(file) {
 
 function isUnitTestFile(file) {
   return /^tests\/.+\.test\.(?:ts|mjs|js)$/.test(file);
+}
+
+function isLintFile(file) {
+  return /\.(?:js|jsx|mjs|cjs|ts|tsx|mts|cts)$/.test(file);
 }
 
 function isPresentationRenderFile(file) {

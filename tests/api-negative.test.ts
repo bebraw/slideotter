@@ -230,7 +230,7 @@ function configureMockLlm(baseUrl: string) {
       return originalFetch(url, init);
     }
 
-    if (/\/chat\/completions$/.test(urlText)) {
+    if (urlText.endsWith("/chat/completions")) {
       const requestBody = readJsonRequestBody(init);
       if (requestBody.response_format.json_schema.name === "initial_presentation_deck_plan") {
         return createLmStudioStreamResponse(createGeneratedDeckPlan("API Negative", 5));
@@ -285,7 +285,7 @@ function cleanupPresentations() {
 
     try {
       deletePresentation(id);
-    } catch (error) {
+    } catch {
       // Keep cleanup best-effort so assertion failures stay visible.
     }
   }

@@ -7,7 +7,7 @@ Use the narrowest validation command that can catch the class of change during i
 | Changed area | Start with | Also run when relevant |
 | --- | --- | --- |
 | Markdown docs and local links | `npm run validate:docs` | `npm run typecheck` if scripts changed |
-| TypeScript types or shared service signatures | `npm run typecheck` | `npm test` |
+| JavaScript/TypeScript behavior, types, or shared signatures | `npm run lint`, `npm run typecheck` | `npm test` |
 | Unit-covered server behavior | `npm test` | `npm run test:coverage` |
 | LLM prompts, schemas, generated slide shape, or deck plans | `npm run validate:deck-plan-fixture` | `npm run validate:slide-spec-fixture`, `npm run validate:presentation-workflow` |
 | Slide spec schema or supported slide families | `npm run validate:slide-spec-fixture` | `npm run validate:geometry`, `npm run validate:text` |
@@ -36,7 +36,7 @@ The diagnostics use Fallow's best-effort type-aware analysis; health commands al
 
 - `npm run validate:static`: diagrams, slide fixtures, geometry, text, media fixtures, deck-plan fixtures, and output config.
 - `npm run validate`: static validation plus browser workflow validation.
-- `npm run quality:gate:fast`: typecheck, service coverage, and `npm run validate`.
+- `npm run quality:gate:fast`: Oxlint correctness checks, typecheck, service coverage, and `npm run validate`.
 - `npm run quality:gate`: fast gate plus render-baseline validation.
 
 The quality-gate runner prints named phase transitions and a 30-second elapsed-time heartbeat without suppressing child-command output.

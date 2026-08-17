@@ -607,7 +607,7 @@ function parseStructuredText(text: string, options: StructuredResponseOptions, c
       data: parseStructuredJsonRecord(text),
       model: String(response.model || options.model || config.model),
       promptBudget: {
-        ...(options.promptBudget || {}),
+        ...options.promptBudget,
         responseCharCount: text.length
       },
       provider: config.provider,
@@ -756,7 +756,7 @@ function parseChatCompletionDataLines(
 
     try {
       handleChatCompletionStreamPayload(JSON.parse(dataLine), state, config, options);
-    } catch (error) {
+    } catch {
       // Ignore malformed stream fragments; the final parse will still validate complete JSON.
     }
   });
@@ -1177,7 +1177,7 @@ async function runLlmStructuredVerification(config: LlmConfig): Promise<Structur
       type: "object"
     },
     schemaName: "studio_llm_verification",
-    userPrompt: `Reply with status \"ok\" and provider \"${config.provider}\".`
+    userPrompt: `Reply with status "ok" and provider "${config.provider}".`
   });
 }
 

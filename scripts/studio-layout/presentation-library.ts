@@ -192,7 +192,7 @@ async function validatePresentationLibrary(page: Page, viewport: ViewportSize): 
   }));
   assert.equal(filteredMetrics.cardCount, 0, "Presentation search should filter non-matching cards");
   assert.equal(filteredMetrics.emptyText, "No matching presentations", "Presentation search should explain empty filtered state");
-  assert.ok(/^0 of /.test(filteredMetrics.resultCount), "Presentation search should update filtered count");
+  assert.ok(filteredMetrics.resultCount.startsWith("0 of "), "Presentation search should update filtered count");
   await page.fill("#presentation-search", "");
   await page.waitForSelector("#presentation-list .presentation-card", {
     timeout: 30_000

@@ -452,7 +452,7 @@ test("LLM presentation generation leaves missing slide eyebrows optional", async
     assert.equal(schemaName, "initial_presentation_plan");
     const plan = createGeneratedPlan("Small slide draft", 4);
     plan.slides = plan.slides.map((slide: GeneratedPlanSlide) => {
-      const { eyebrow, summary, ...rest } = slide;
+      const { eyebrow: _eyebrow, summary: _summary, ...rest } = slide;
       return rest;
     });
     return createLmStudioStreamResponse(plan);

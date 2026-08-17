@@ -345,6 +345,7 @@ flowchart LR
 
 Validation is layered:
 
+- Oxlint's default correctness rules catch fast JavaScript/TypeScript mistakes without replacing the TypeScript compiler or project tests
 - type checks cover the TypeScript sources
 - service tests cover high-risk server behavior
 - DOM validators catch layout, text, contrast, bounds, and media issues

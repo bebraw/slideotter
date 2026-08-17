@@ -105,7 +105,7 @@ function readStructuredSlideDocumentFile(fileName: string): JsonRecord {
 
 function splitStructuredSlideDocument(document: unknown): { slideSpec: SlideSpec; variants: unknown[] } {
   const {
-    variants,
+    variants: _variants,
     ...slideSpec
   } = asRecord(document);
 

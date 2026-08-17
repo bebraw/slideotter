@@ -107,7 +107,7 @@ function readExistingSlideSpec(slideId: string): SlideSpec | null {
   let slideSpec: unknown = null;
   try {
     slideSpec = readSlideSpec(slideId);
-  } catch (error) {
+  } catch {
     return null;
   }
   return asJsonObject(slideSpec);

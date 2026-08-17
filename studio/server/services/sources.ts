@@ -225,7 +225,7 @@ function normalizeUrl(value: unknown): string {
     }
 
     return url.toString();
-  } catch (error) {
+  } catch {
     throw new Error(`Invalid source URL: ${raw}`);
   }
 }

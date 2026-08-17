@@ -272,7 +272,7 @@ function installSmokeLlmMock(): void {
 
   global.fetch = async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
     const urlText = String(url);
-    if (!/\/chat\/completions$/.test(urlText)) {
+    if (!urlText.endsWith("/chat/completions")) {
       return originalFetch(url, init);
     }
 

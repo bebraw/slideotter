@@ -48,7 +48,7 @@ export function withClientSelectedSlideLink<TResource extends ApiExplorerResourc
   return {
     ...resource,
     links: {
-      ...(resource.links || {}),
+      ...resource.links,
       selectedSlide: {
         href: `/api/v1/presentations/${state.activePresentationId}/slides/${state.selectedSlideId}`
       }

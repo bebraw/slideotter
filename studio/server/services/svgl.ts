@@ -135,7 +135,7 @@ function normalizeSvglLogo(value: unknown): SvglLogoResult[] {
       title,
       variant: route.variant
     }));
-  } catch (error) {
+  } catch {
     return [];
   }
 }

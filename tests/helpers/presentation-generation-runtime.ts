@@ -101,7 +101,7 @@ export function createPresentationCleanup<TPresentation extends PresentationReco
 
       try {
         services.deletePresentation(id);
-      } catch (error) {
+      } catch {
         // Keep cleanup best-effort so the original assertion failure remains visible.
       }
     }

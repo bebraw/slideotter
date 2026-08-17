@@ -234,7 +234,7 @@ function distinctVisibleBodyPoints(points: NormalizedPoint[]): NormalizedPoint[]
 function normalizedPointsOrEmpty(points: unknown, fieldName: string, boundary: VisibleTextBoundary): NormalizedPoint[] {
   try {
     return normalizeAllGeneratedPoints(points, fieldName, boundary);
-  } catch (_error) {
+  } catch {
     return [];
   }
 }

@@ -1085,7 +1085,7 @@ function getUniquePresentationId(title: unknown): string {
 function readFileMtime(fileName: string): number {
   try {
     return fs.statSync(fileName).mtime.getTime();
-  } catch (error) {
+  } catch {
     return 0;
   }
 }

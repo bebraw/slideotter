@@ -690,7 +690,7 @@ async function createSemanticActions(activeSlides: SlideInfo[], targetCount: num
       skipCount,
       targetCount
     });
-  } catch (error) {
+  } catch {
     return fallbackSemanticActions({ activeSlides, insertCount, restoreActions, targetCount });
   }
 }

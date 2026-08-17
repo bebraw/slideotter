@@ -4,7 +4,7 @@ export function applyInitialAppTheme(documentRef: Document, windowRef: Window): 
     const systemTheme = windowRef.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     const theme = storedTheme === "dark" || storedTheme === "light" ? storedTheme : systemTheme;
     documentRef.documentElement.dataset.appTheme = theme;
-  } catch (error) {
+  } catch {
     documentRef.documentElement.dataset.appTheme = "light";
   }
 }

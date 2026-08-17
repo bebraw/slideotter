@@ -149,7 +149,7 @@ async function importSearchedMaterials(presentationId: string, materials: Materi
         title: material.title,
         url: material.url
       }));
-    } catch (error) {
+    } catch {
       // Continue with other search images.
     }
   }
@@ -177,7 +177,9 @@ async function resolveDraftCreateContext(params: {
   normalizeCreationFields: CreationContentRunCreateHandlerDependencies["normalizeCreationFields"];
 }): Promise<DraftCreateContext> {
   const fields = params.normalizeCreationFields({
+    // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- The JSON boundary keeps these fields unknown until normalization.
     ...(params.current.fields || {}),
+    // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- The JSON boundary keeps these fields unknown until normalization.
     ...(params.body.fields || {})
   });
   const deckPlan = params.jsonObjectOrEmpty(params.body.deckPlan || params.current.deckPlan);

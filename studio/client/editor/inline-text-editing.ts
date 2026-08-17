@@ -134,7 +134,7 @@ export function createInlineTextEditing(deps: InlineTextEditingDependencies) {
         }
         try {
           return range.intersectsNode(element);
-        } catch (error) {
+        } catch {
           return false;
         }
       });

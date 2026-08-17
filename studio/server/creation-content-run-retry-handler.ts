@@ -248,7 +248,7 @@ async function importRetryMaterials(generationMaterials: MaterialPayload[]): Pro
         title: material.title,
         url: material.url
       }));
-    } catch (error) {
+    } catch {
       // Ignore import failures.
     }
   }

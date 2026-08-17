@@ -58,7 +58,7 @@ function cleanupCoveragePresentations(): void {
 
     try {
       deletePresentation(id);
-    } catch (error) {
+    } catch {
       // Preserve the original assertion failure if cleanup also fails.
     }
   }

@@ -271,7 +271,7 @@ export function normalizeOutlinePlansStore(value: unknown): OutlinePlansStore {
     ? source.plans.map((plan: unknown) => {
       try {
         return normalizeOutlinePlan(plan);
-      } catch (error) {
+      } catch {
         return null;
       }
     }).filter((plan: OutlinePlan | null): plan is OutlinePlan => plan !== null)

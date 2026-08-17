@@ -17,6 +17,7 @@
       "2026-07-08-typescript-7-typecheck",
       "2026-07-12-web-quality-baseline",
       "2026-07-13-agent-ci-progress-events",
+      "2026-07-14-oxlint-correctness-gate",
       "2026-07-15-quality-gate-progress",
       "2026-07-30-fallow-type-aware-diagnostics",
       "2026-08-10-scoped-modern-web-guidance"
@@ -49,6 +50,7 @@
     "diagnostics:map": "fallow viz --out .fallow/codebase-map.html --no-open --type-aware --type-aware-require best-effort --quiet --no-cache",
     "diagnostics:targets": "fallow health --targets --type-aware --type-aware-require best-effort --quiet --no-cache",
     "diagnostics:readability": "fallow audit --max-crap 100 --type-aware --type-aware-require best-effort --quiet --no-cache",
+    "lint": "oxlint --max-warnings 0 --report-unused-disable-directives",
     "test": "node --test --test-concurrency=1 tests/*.test.ts tests/*.test.mjs",
     "test:mutation": "stryker run",
     "test:mutation:dry": "stryker run --dryRunOnly",
@@ -134,6 +136,7 @@
     "fallow": "3.17.0",
     "gustwind": "0.180.0",
     "lighthouse": "13.4.1",
+    "oxlint": "1.78.0",
     "run-local-ci": "0.18.0",
     "typescript-7": "npm:typescript@7.0.2",
     "vite": "8.1.0",
