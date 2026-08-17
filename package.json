@@ -120,7 +120,7 @@
     "@napi-rs/canvas": "1.0.1",
     "pdfjs-dist": "6.2.108",
     "playwright": "1.61.1",
-    "pptxgenjs": "4.0.1",
+    "pptxgenjs": "https://codeload.github.com/otcaveuni-dev/PptxGenJS/tar.gz/2ea5bafc5a1260c108c7200f6a36519bb6d35bd7",
     "sharp": "0.35.2",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
