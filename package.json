@@ -15,6 +15,7 @@
       "2026-06-14-agent-ci-warm-cache",
       "2026-06-17-shared-affected-file-utils",
       "2026-07-08-typescript-7-typecheck",
+      "2026-07-12-web-quality-baseline",
       "2026-07-13-agent-ci-progress-events",
       "2026-07-15-quality-gate-progress",
       "2026-07-30-fallow-type-aware-diagnostics",
@@ -108,6 +109,7 @@
     "typecheck": "node scripts/check-strict-types.ts",
     "typecheck:strict": "node ./node_modules/typescript-7/bin/tsc --noEmit",
     "website:dev": "wrangler dev --config website/wrangler.toml",
+    "website:audit": "LIGHTHOUSE_URL=http://127.0.0.1:8798 LIGHTHOUSE_SERVER_COMMAND='npm run website:dev -- --port 8798' node scripts/run-lighthouse.mjs",
     "website:check": "wrangler deploy --config website/wrangler.toml --dry-run --outdir website/dist",
     "website:deploy": "wrangler deploy --config website/wrangler.toml"
   },
@@ -126,14 +128,16 @@
     "@stryker-mutator/core": "9.6.1",
     "@stryker-mutator/typescript-checker": "9.6.1",
     "@types/node": "24.13.2",
+    "chrome-launcher": "1.2.1",
     "electron": "42.5.0",
     "electron-builder": "26.15.3",
     "fallow": "3.17.0",
-    "gustwind": "0.121.0",
+    "gustwind": "0.180.0",
+    "lighthouse": "13.4.1",
     "run-local-ci": "0.18.0",
     "typescript-7": "npm:typescript@7.0.2",
     "vite": "8.1.0",
-    "wrangler": "4.104.0"
+    "wrangler": "4.123.0"
   },
   "overrides": {
     "gustwind": {

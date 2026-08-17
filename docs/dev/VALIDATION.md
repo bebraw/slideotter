@@ -14,6 +14,7 @@ Use the narrowest validation command that can catch the class of change during i
 | DOM layout, slide rendering, or CSS | `npm run validate:geometry` | `npm run validate:text`, `npm run validate:render` |
 | Media handling, captions, source lines, or material attachment | `npm run validate:media-fixture` | `npm run validate:slide-media-fixture` |
 | Browser studio workflows | `npm run validate:browser` | `npm run validate:presentation-workflow` |
+| Public website Worker or markup | `node --test tests/website-worker.test.ts` | `npm run website:check`, `npm run website:audit` |
 | Layout library behavior | `npm run validate:studio-layout` | `npm run validate:geometry` |
 | Output paths, active presentation paths, or artifact config | `npm run validate:output-config` | `npm run build` |
 | Diagrams under `slides/assets/diagrams/` | `npm run validate:diagrams` | `npm run build` |

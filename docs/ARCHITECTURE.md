@@ -222,6 +222,12 @@ Reusable layout definitions live in `/presentations/<id>/state/layouts.json` for
 
 Hypermedia knowledge memory lives in `/presentations/<id>/state/memory.json`. It stores typed claims, evidence, concepts, audience assumptions, style notes, decisions, review notes, links, and derived-slideset records. The memory service keeps the store presentation-scoped, exposes versioned resources through `/api/v1`, feeds bounded keyword-selected snippets into deck planning and slide drafting prompts, and records lineage when an outline flow derives a new deck or deck-length scaling creates another projection of the same presentation.
 
+## Public Website
+
+The public project site is a separate Gustwind-rendered Cloudflare Worker under `/website/`. Its response finalizer applies a default-deny CSP adapted for the current inline styles, Google Fonts, and `data:` images; framing, permissions, referrer, MIME-sniffing, opener, and HTTPS transport policies; `no-store` on errors; and body-free `HEAD` parity. The Worker keeps route and rendering errors generic at the response boundary while recording structured diagnostics server-side.
+
+`npm run website:check` validates the Worker bundle with Wrangler. `npm run website:audit` starts the local Worker and runs Lighthouse against mobile and desktop profiles for performance, accessibility, best practices, and SEO, writing disposable reports under `/reports/lighthouse/`. The Lighthouse run is focused evidence rather than a deterministic quality-gate phase because the page intentionally loads Google Fonts over the network.
+
 ## Cloud Hosting
 
 ADR 0019 is implemented as a hosted baseline. The first hosted target lives under `/cloud/` and uses a Cloudflare Worker with Workers Static Assets rather than a separate Pages deployment. The Worker serves the built Vite client from `/studio/client-dist`, routes API requests through the Worker first, exposes `/api/cloud/health`, advertises `/api/cloud/v1`, can read workspace, presentation, slide, source, material, and job collections from configured D1/R2 bindings, can export and import presentation bundles from D1 metadata plus R2 slide/source/material documents, can run a Cloudflare Browser Rendering proof for a cloud presentation, and supports bearer-token-guarded bootstrap writes for workspace, presentation, slide, source, material, and job creation.

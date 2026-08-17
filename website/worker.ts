@@ -1,9 +1,69 @@
 import { createCloudflareWorker } from "gustwind/workers/cloudflare";
+import type { CloudflareWorker } from "gustwind/workers/cloudflare";
 import { plugin as metaPlugin } from "gustwind/plugins/meta";
 import { plugin as edgeRendererPlugin } from "gustwind/plugins/htmlisp-edge-renderer";
 import { plugin as edgeRouterPlugin } from "gustwind/routers/edge-router";
 
 type SiteEnvironment = Record<string, unknown>;
+
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'none'",
+  "base-uri 'none'",
+  "connect-src 'none'",
+  "font-src 'self' https://fonts.gstatic.com",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+  "img-src 'self' data:",
+  "object-src 'none'",
+  "script-src 'none'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com"
+].join("; ");
+
+const SECURITY_HEADERS = {
+  "content-security-policy": CONTENT_SECURITY_POLICY,
+  "cross-origin-opener-policy": "same-origin",
+  "permissions-policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY"
+} as const;
+
+function finalizeWebsiteResponse(request: Request, response: Response): Response {
+  const headers = new Headers(response.headers);
+
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(name, value);
+  }
+
+  if (new URL(request.url).protocol === "https:") {
+    headers.set("strict-transport-security", "max-age=31536000");
+  }
+
+  if (response.status >= 400) {
+    headers.set("cache-control", "no-store");
+  }
+
+  return new Response(request.method === "HEAD" ? null : response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText
+  });
+}
+
+function createInternalServerErrorResponse(request: Request): Response {
+  return new Response(request.method === "HEAD" ? null : "Internal Server Error", {
+    headers: { "content-type": "text/plain; charset=UTF-8" },
+    status: 500
+  });
+}
+
+function logWebsiteError(error: unknown, request: Request): void {
+  console.error("Website request failed", {
+    error: error instanceof Error ? error.message : String(error),
+    method: request.method,
+    pathname: new URL(request.url).pathname
+  });
+}
 
 function isMissingRouteError(error: unknown, pathname: string): boolean {
   return error instanceof Error
@@ -87,6 +147,21 @@ const components = {
 
       a {
         color: inherit;
+      }
+
+      .skip-link {
+        background: var(--panel);
+        border: 2px solid var(--line);
+        left: 12px;
+        padding: 10px 14px;
+        position: fixed;
+        top: 12px;
+        transform: translateY(-200%);
+        z-index: 10;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
       }
 
       .shell {
@@ -240,6 +315,7 @@ const components = {
     </style>
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <main class="shell">
       <nav class="topbar" aria-label="Primary">
         <a class="brand" href="/">
@@ -248,7 +324,7 @@ const components = {
         </a>
       </nav>
 
-      <section class="not-found" aria-labelledby="not-found-title">
+      <section class="not-found" id="main-content" aria-labelledby="not-found-title">
         <div>
           <span class="status">404 / no slide here</span>
           <h1 id="not-found-title">Page not found.</h1>
@@ -327,6 +403,21 @@ const components = {
 
       a {
         color: inherit;
+      }
+
+      .skip-link {
+        background: var(--panel);
+        border: 2px solid var(--line);
+        left: 12px;
+        padding: 10px 14px;
+        position: fixed;
+        top: 12px;
+        transform: translateY(-200%);
+        z-index: 10;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
       }
 
       .shell {
@@ -796,6 +887,7 @@ const components = {
     </style>
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <main class="shell">
       <nav class="topbar" aria-label="Primary">
         <a class="brand" href="/">
@@ -823,7 +915,7 @@ const components = {
         </div>
       </nav>
 
-      <section class="hero">
+      <section class="hero" id="main-content">
         <div>
           <span class="eyebrow">DOM-first presentation studio</span>
           <h1>slideotter</h1>
@@ -979,7 +1071,7 @@ const components = {
 </html>`,
 };
 
-export default createCloudflareWorker<SiteEnvironment>({
+const rendererWorker = createCloudflareWorker<SiteEnvironment>({
   initialPlugins: [
     [edgeRouterPlugin, { routes }],
     [
@@ -1006,9 +1098,28 @@ export default createCloudflareWorker<SiteEnvironment>({
       return createHtmlResponse(request, components.NotFound, 404);
     }
 
-    return new Response("Internal Server Error", {
-      headers: { "content-type": "text/plain; charset=UTF-8" },
-      status: 500
-    });
+    logWebsiteError(error, request);
+    return createInternalServerErrorResponse(request);
   },
 });
+
+const websiteWorker: CloudflareWorker<SiteEnvironment> = {
+  async fetch(request, env, ctx) {
+    try {
+      const response = await rendererWorker.fetch(request, env, ctx);
+      return finalizeWebsiteResponse(request, response);
+    } catch (error) {
+      logWebsiteError(error, request);
+      return finalizeWebsiteResponse(request, createInternalServerErrorResponse(request));
+    }
+  }
+};
+
+export const _test = {
+  contentSecurityPolicy: CONTENT_SECURITY_POLICY,
+  createInternalServerErrorResponse,
+  finalizeWebsiteResponse,
+  securityHeaders: SECURITY_HEADERS
+};
+
+export default websiteWorker;

@@ -140,6 +140,7 @@ Use focused checks while iterating, then run the full gate when the change affec
 - browser client source or CSS changes: `npm run studio:client:build`, `npm run validate:client-fixture`, and `npm run validate:browser:studio`
 - presentation workflow, export, or playback changes: `npm run validate:browser:presentation`
 - broad browser workflow changes: `npm run validate:browser`
+- public website response or markup changes: `node --test tests/website-worker.test.ts` and `npm run website:check`; add `npm run website:audit` for mobile/desktop web-quality evidence
 - visual output changes: `npm run baseline:render`, then `npm run quality:gate`
 
 See [docs/dev/VALIDATION.md](docs/dev/VALIDATION.md) for the detailed command map.
