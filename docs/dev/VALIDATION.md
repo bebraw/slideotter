@@ -26,9 +26,10 @@ Use the narrowest validation command that can catch the class of change during i
 - `npm run diagnostics:health:full`: runs Fallow's all-files structural score, including the large browser workbench composition files.
 - `npm run diagnostics:targets`: runs Fallow's prioritized refactoring targets.
 - `npm run diagnostics:hotspots`: runs Fallow's git-history hotspot report separately from the structural score.
+- `npm run diagnostics:map`: writes an interactive type-aware codebase map to the ignored `.fallow/codebase-map.html` path without opening a browser.
 - `npm run diagnostics:codebase`: runs both advisory diagnostics, even when the readability audit reports findings.
 
-These diagnostics support review and refactoring decisions. They are not part of `quality:gate`, `quality:gate:fast`, `quality:affected`, or CI because the project-specific validation gates remain the readiness baseline.
+The diagnostics use Fallow's best-effort type-aware analysis; health commands also report value/type coupling without folding git-history hotspot deductions into the structural score. They support review and refactoring decisions, but remain outside `quality:gate`, `quality:gate:fast`, `quality:affected`, and CI because the project-specific validation gates are the readiness baseline.
 
 ## Gate Composition
 

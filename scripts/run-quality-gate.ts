@@ -1,13 +1,13 @@
 import { spawn } from "node:child_process";
 import process from "node:process";
 
-type QualityGateStep = {
+export type QualityGateStep = {
   args: string[];
   command: string;
   label: string;
 };
 
-type QualityGateOptions = {
+export type QualityGateOptions = {
   heartbeatMs?: number;
   log?: (message: string) => void;
   now?: () => number;
@@ -15,11 +15,11 @@ type QualityGateOptions = {
   steps?: QualityGateStep[];
 };
 
-type IntervalHandle = ReturnType<typeof setInterval>;
-type SetInterval = (callback: () => void, milliseconds: number) => IntervalHandle;
-type ClearInterval = (handle: IntervalHandle) => void;
+export type IntervalHandle = ReturnType<typeof setInterval>;
+export type SetInterval = (callback: () => void, milliseconds: number) => IntervalHandle;
+export type ClearInterval = (handle: IntervalHandle) => void;
 
-type HeartbeatOptions = {
+export type HeartbeatOptions = {
   clearIntervalFn?: ClearInterval;
   heartbeatMs: number;
   label: string;

@@ -6,6 +6,7 @@ For focused coding maps, use:
 
 - [LLM generation guide](docs/dev/LLM_GENERATION.md) for prompt, schema, provider, source, and material generation work
 - [Validation guide](docs/dev/VALIDATION.md) for targeted validation commands and quality-gate composition
+- [Browser debugging guide](docs/dev/BROWSER_DEBUGGING.md) for loopback CDP setup and browser inspection
 
 ## Setup
 
@@ -103,13 +104,15 @@ Validate Markdown documentation links:
 npm run validate:docs
 ```
 
-Run the GitHub Actions workflow locally through Agent CI:
+Run the GitHub Actions workflow locally through Local CI (the current upstream name for Agent CI):
 
 ```bash
 npm run ci:local
 ```
 
-Docker must be running before `npm run ci:local`. The GitHub Actions workflow runs the fast deterministic gate, and local Agent CI runs reuse `node_modules` when `package-lock.json` is unchanged. Use `npm run quality:gate` locally when presentation output or baselines matter. Use `npm run ci:local:retry -- --name <runner-name>` to resume a paused Agent CI runner after a fix. Machine-local Agent CI overrides belong in `.env.agent-ci`; copy `.env.agent-ci.example` when you need to set `GITHUB_REPO`, `AGENT_CI_DOCKER_HOST`, or related Docker host settings.
+Docker must be running before `npm run ci:local`. Run it as `rtk proxy npm run ci:local` when following this repository's RTK requirement so the schema-v1 NDJSON stream stays live. The stream reports run, job, step, pause, diagnostic, and completion events; exit code 77 means the named runner is paused for repair. Use `rtk proxy npm run ci:local:retry -- --name <runner-name>` after fixing it. Machine-local overrides belong in `.env.local-ci`; copy `.env.local-ci.example` and use `LOCAL_CI_DOCKER_HOST` or the other documented variables when needed.
+
+Typechecking intentionally uses two compiler package names during the TypeScript 7 transition. `npm run typecheck` invokes the aliased TypeScript 7 compiler directly, while the canonical `typescript` dependency remains the TypeScript 6 compatibility package used by build, validation, and server modules that import the compiler API.
 
 Refresh the README studio screenshot:
 
@@ -255,11 +258,13 @@ If you add deck graphics, author them as DOT sources under `slides/assets/diagra
 
 ## Codex Skills
 
-This repository includes presentation-focused workflow guidance under `skills/`.
+This repository includes product-facing presentation workflow guidance under `skills/` and developer-agent guidance under `.codex/skills/`.
 
 Use the deck workflow for implementation, rendering, validation, and deck structure changes.
 
 Use `slide-clarity-drill` when slide wording needs line-by-line tightening before editing the source.
+
+Use the repo-local `agent-ci` developer skill for workflow-sensitive changes and explicit local CI readiness checks.
 
 Typical requests:
 

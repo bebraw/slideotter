@@ -26,6 +26,9 @@
     "website/website/dist/**"
   ],
   "ignoreExportsUsedInFile": true,
+  "ignoreDependencies": [
+    "typescript-7"
+  ],
   "duplicates": {
     "ignore": [
       "archive/**",

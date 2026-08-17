@@ -1,40 +1,64 @@
 ---
 name: agent-ci
-description: Run GitHub Actions workflows locally with pause-on-failure for AI-agent-driven CI iteration.
-keywords: [github-actions, local-ci, pause-on-failure, ai-agent, runner]
+description: Run the repository's GitHub Actions workflow locally with Local CI, structured progress, and pause-on-failure. Use for workflow-sensitive changes or explicit CI readiness checks.
 ---
 
-# Agent CI
+# Local CI
 
-## What agent-ci does
+Use the repository-pinned `run-local-ci` package. It is the current upstream name for the tool previously published as Agent CI.
 
-Runs the official GitHub Actions runner binary locally in Docker, emulating GitHub's cloud API.
-Cache is bind-mounted. When a step fails, the container can pause so you can fix and retry the failed step without restarting the workflow.
+## Run
 
-## When to use agent-ci
+Docker must be running. Stream the command through RTK's passthrough mode so NDJSON progress remains visible:
 
-- You want compatibility with remote GitHub Actions before pushing.
-- You need pause-on-failure for an agent debugging loop.
-- Cache round-trip speed matters.
+```bash
+rtk proxy npm run ci:local
+```
 
-## Project commands
+The package script selects `.github/workflows/ci.yml`, uses quiet rendering, emits structured progress with `--json`, and pauses a failed runner for repair.
 
-Use the target repo's pinned `agent-ci` dependency through package scripts.
+## Read progress
 
-- Run the local workflow quietly: `npm run ci:local`
-- Run all relevant workflows when needed: `./node_modules/.bin/agent-ci run --all`
-- Run all workflows with pause-on-failure: `./node_modules/.bin/agent-ci run --all --pause-on-failure`
-- Collapse matrix jobs for a smaller local run: `./node_modules/.bin/agent-ci run --all --no-matrix`
-- Retry after a fix: `npm run ci:local:retry -- --name <runner>`
-- Retry from a specific step: `npm run ci:local:retry -- --name <runner> --from-step <N>`
-- Retry from the start: `npm run ci:local:retry -- --name <runner> --from-start`
-- Abort a paused runner: `./node_modules/.bin/agent-ci abort --name <runner>`
+JSON mode writes one schema-v1 event per line. Handle these lifecycle events directly:
 
-## Common mistakes
+- `run.start`
+- `job.start` and `job.finish`
+- `step.start` and `step.finish`
+- `run.paused`, including `runner` and `retry_cmd`
+- `run.finish`
+- `diagnostic`
 
-- Do not push to remote CI to test changes when local Agent CI can run the workflow.
-- Do not use `--from-start` when only the last step failed; use retry with no extra flags to re-run only the failed step.
-- Use `AI_AGENT=1` or `--quiet` for cleaner agent logs.
-- Prefer `--no-matrix` when matrix combinations are not the thing being tested.
+If the foreground command exits `77`, the workflow is paused rather than finished. Read the preceding `run.paused` event, fix the failure, and follow its `retry_cmd` for the named runner.
 
-Repeat the local run or retry loop until all jobs pass.
+## Retry
+
+```bash
+rtk proxy npm run ci:local:retry -- --name <runner-name>
+```
+
+A bare retry reruns only the failed step.
+
+Retry from a specific step only when the fix requires rerunning earlier setup:
+
+```bash
+rtk proxy npm run ci:local:retry -- --name <runner-name> --from-step <N>
+```
+
+Retry from the start only when workflow state itself must be rebuilt:
+
+```bash
+rtk proxy npm run ci:local:retry -- --name <runner-name> --from-start
+```
+
+Repeat the repair-and-retry loop until `run.finish` reports `passed`.
+
+## Local configuration
+
+Copy `.env.local-ci.example` to the ignored `.env.local-ci` file for machine-local overrides. Prefer `LOCAL_CI_*` variables; the legacy `AGENT_CI_*` aliases are transitional compatibility only.
+
+## Guardrails
+
+- Use this workflow for changes to CI, package metadata, dependency installation, or local-CI configuration, and when the user requests full CI readiness.
+- Use focused repository checks while iterating, then run the local workflow once the slice is ready.
+- Do not parse quiet-mode prose when JSON events provide the state explicitly.
+- Do not push merely to trigger remote CI when this local workflow can exercise the same file.

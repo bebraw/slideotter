@@ -21,6 +21,7 @@ The migration rules are:
 - Do not add new explicit `any` usages. Use narrow domain interfaces, `unknown` plus local guards, DOM types, or shared payload types instead.
 - Keep the main `tsconfig.json` on strict compiler settings: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and `noImplicitOverride`.
 - Keep `npm run typecheck` as a zero-diagnostic strict compiler gate.
+- Use TypeScript 7 for the project typecheck while retaining the TypeScript 6 compatibility package under the canonical `typescript` name for code that imports the compiler API.
 - Keep `npm run validate:type-safety` as a zero-explicit-`any` and zero-strict-diagnostic gate.
 - Prefer extracting shared studio payload and slide-spec types before typing the largest server/workflow modules.
 
@@ -127,6 +128,7 @@ The migration rules are:
 - Operations service now satisfies the strict project compiler with typed deck-plan definitions, LLM deck-structure candidates, variant materialization, preview rendering, and slide ideation workflow boundaries.
 - Type-safety validation now enforces zero explicit `any` nodes and zero strict compiler diagnostics directly, without baseline files.
 - The strict compiler guard reports 0 diagnostics.
+- The strict compiler guard now invokes the aliased TypeScript 7 compiler directly; runtime and build-time compiler-API consumers remain on the stable TypeScript 6 compatibility package during the transition.
 
 ## Validation
 

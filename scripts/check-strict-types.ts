@@ -4,13 +4,13 @@ import * as path from "node:path";
 type StrictTypeCounts = Record<string, number>;
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
-const tscPath = path.join(repoRoot, "node_modules", ".bin", process.platform === "win32" ? "tsc.cmd" : "tsc");
+const tscPath = path.join(repoRoot, "node_modules", "typescript-7", "bin", "tsc");
 const diagnosticPattern = /^([^(:]+\.(?:ts|mts|tsx))\(\d+,\d+\): error TS\d+:/;
 
 function collectCounts(): StrictTypeCounts {
   const result = spawnSync(
-    tscPath,
-    ["--noEmit", "--pretty", "false"],
+    process.execPath,
+    [tscPath, "--noEmit", "--pretty", "false"],
     {
       cwd: repoRoot,
       encoding: "utf8"
