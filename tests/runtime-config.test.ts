@@ -179,12 +179,63 @@ test("slideotter help explains basic commands", () => {
   assert.match(result.stdout, /data-dir/);
   assert.match(result.stdout, /paths --ensure/);
   assert.match(result.stdout, /llm lmstudio --model/);
+  assert.match(result.stdout, /codex-gateway/);
 
   const flagResult = runNode([
     path.join(repoRoot, "bin", "slideotter.mjs"),
     "--help"
   ]);
   assert.equal(flagResult.stdout, result.stdout);
+
+  const gatewayHelpResult = runNode([
+    path.join(repoRoot, "bin", "slideotter.mjs"),
+    "codex-gateway",
+    "--help"
+  ]);
+  assert.match(gatewayHelpResult.stdout, /CODEX_GATEWAY_TOKEN/);
+  assert.match(gatewayHelpResult.stdout, /always binds to 127\.0\.0\.1/);
+  assert.doesNotMatch(gatewayHelpResult.stdout, /slideotter init --template tutorial/);
+
+  const absentDataDir = path.join(os.tmpdir(), `slideotter-gateway-help-${Date.now()}`);
+  const dataDirHelpResult = runNode([
+    path.join(repoRoot, "bin", "slideotter.mjs"),
+    "codex-gateway",
+    "--data-dir",
+    absentDataDir,
+    "--help"
+  ]);
+  assert.match(dataDirHelpResult.stdout, /^Usage:\n  slideotter codex-gateway/);
+  assert.equal(fs.existsSync(absentDataDir), false, "gateway help must not create its data root");
+});
+
+test("slideotter codex-gateway loads configuration from its selected data root", () => {
+  const dataDir = createTempDir("gateway-env");
+  const missingCodexHome = path.join(dataDir, "missing-codex-home");
+  fs.writeFileSync(path.join(dataDir, ".env.local"), [
+    "CODEX_GATEWAY_TOKEN=gateway-token-0123456789abcdef",
+    "CODEX_GATEWAY_MODEL=gpt-5.6-terra",
+    `CODEX_GATEWAY_CODEX_HOME=${missingCodexHome}`,
+    ""
+  ].join("\n"), "utf8");
+
+  const result = spawnSync(process.execPath, [
+    path.join(repoRoot, "bin", "slideotter.mjs"),
+    "codex-gateway",
+    "--data-dir",
+    dataDir
+  ], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: {
+      HOME: process.env.HOME,
+      PATH: process.env.PATH,
+      TMPDIR: process.env.TMPDIR
+    }
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, new RegExp(missingCodexHome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.equal(fs.existsSync(path.join(dataDir, "config.json")), false, "gateway launch should not initialize unrelated Studio data");
 });
 
 test("slideotter llm lmstudio writes user data env config", () => {

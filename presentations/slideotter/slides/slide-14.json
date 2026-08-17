@@ -21,7 +21,7 @@
     {
       "id": "signal-provider",
       "title": "Provider",
-      "body": "Use local rules, OpenAI, LM Studio, or OpenRouter."
+      "body": "Use OpenAI, local Codex, LM Studio, OpenRouter—or rules."
     }
   ],
   "guardrails": [
@@ -44,6 +44,6 @@
   "narration": {
     "advance": "afterSpeech",
     "durationSeconds": 13,
-    "script": "Generation creates review candidates, reports status, and keeps the current slide unchanged until Apply. Choose candidate count; five is default."
+    "script": "Generation creates review candidates, reports status, and keeps the current slide unchanged until Apply. Local Codex runs through a loopback gateway while the same review boundary stays in place."
   }
 }

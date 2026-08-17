@@ -204,6 +204,75 @@ OPENAI_COMPATIBLE_MODEL=provider/model-id
 
 The OpenAI-compatible provider uses `/chat/completions` with non-streaming JSON schema responses. Use it for gateways that implement the chat completions API but do not support OpenAI's `/responses` API.
 
+### Local Codex gateway
+
+The optional local Codex gateway lets the OpenAI-compatible provider use a separately authenticated Codex home. Codex supports either ChatGPT subscription login or API-key-backed login; slideotter does not receive or store either upstream credential. The direct `openai` provider above remains available when you want slideotter to call the Responses API with `OPENAI_API_KEY` itself.
+
+Install Codex if needed, then authenticate a dedicated gateway home separately from your normal `~/.codex` storage and configuration:
+
+```bash
+mkdir -p "$HOME/.slideotter/codex-gateway"
+CODEX_HOME="$HOME/.slideotter/codex-gateway" codex -c 'cli_auth_credentials_store="file"' login
+```
+
+This login command writes credentials to `<gateway-home>/auth.json` instead of a shared OS keyring. The launcher requires `auth.json` to be a regular file, and the gateway forces file-backed credential storage for the child process.
+
+Use this Codex home only for gateway authentication and gateway-created session metadata. It must not contain `config.toml`, `requirements.toml`, `AGENTS.md`, `AGENTS.override.md`, `.agents/`, `plugins/`, `rules/`, `hooks/`, or custom skills. A `skills/` directory is allowed only when its sole child is the Codex-owned `.system/` directory. The gateway rejects other customization surfaces so personal Codex instructions, tools, MCP configuration, and skills cannot affect slide generation.
+
+Choose a model available to that Codex account and a high-entropy local bearer token. The gateway loads the same `.env` and `.env.local` files as Studio, so configure both sides together in `.env.local`:
+
+```dotenv
+CODEX_GATEWAY_TOKEN=replace-with-a-random-local-token
+CODEX_GATEWAY_MODEL=your-codex-model-id
+CODEX_GATEWAY_CODEX_HOME=~/.slideotter/codex-gateway
+
+STUDIO_LLM_PROVIDER=openai-compatible
+OPENAI_COMPATIBLE_API_KEY=replace-with-the-same-random-local-token
+OPENAI_COMPATIBLE_BASE_URL=http://127.0.0.1:4174
+OPENAI_COMPATIBLE_MODEL=your-codex-model-id
+```
+
+`CODEX_GATEWAY_TOKEN` must match `OPENAI_COMPATIBLE_API_KEY`, and `CODEX_GATEWAY_MODEL` must match `OPENAI_COMPATIBLE_MODEL` or `STUDIO_LLM_MODEL`.
+
+Start the gateway in one terminal. Use the repository command when working from source:
+
+```bash
+npm run codex:gateway
+```
+
+An installed slideotter package exposes the same gateway through:
+
+```bash
+slideotter codex-gateway
+```
+
+It binds only to `127.0.0.1:4174` by default and prints a startup summary with its token redacted. Start or restart Studio in a second terminal, then use `Check LLM provider` before generation:
+
+```bash
+npm run studio:start
+```
+
+The first gateway slice is manual: the Studio command and Electron app do not start, stop, or configure the gateway.
+
+Optional gateway settings:
+
+```dotenv
+CODEX_GATEWAY_PORT=4174
+CODEX_GATEWAY_REASONING_EFFORT=medium
+CODEX_GATEWAY_TIMEOUT_MS=300000
+CODEX_GATEWAY_MAX_CONCURRENCY=1
+```
+
+The gateway refuses public binding, requires its high-entropy local bearer token for every endpoint, accepts only the configured model, and runs Codex in an empty temporary working directory with read-only filesystem access, approvals disabled, and executable/network tool features disabled. The Codex child receives a synthetic home: `HOME`, `USERPROFILE`, and `CODEX_HOME` all point at `CODEX_GATEWAY_CODEX_HOME`, while the real home and XDG config/data paths are not inherited. As a result, the child does not inherit slideotter provider keys, normal `~/.codex` configuration, user skills from `~/.agents/skills`, or repository instructions and skills. A marker in every request directory anchors Codex project discovery there instead of allowing a `TMPDIR` ancestor to become the project root.
+
+This is not a zero-skill or zero-configuration claim. Codex-owned `skills/.system` content in the dedicated home, vendor-bundled skills, and machine-admin skills, configuration, or MCP definitions under `/etc/codex` remain trusted inputs. Do not expose the gateway through a LAN address, tunnel, reverse proxy, or hosted deployment.
+
+The gateway requests `history.persistence=none`, uses a fresh SDK thread per completion, and removes its temporary working directory. The current TypeScript SDK does not expose the CLI's `--ephemeral` flag, however, so session metadata remains inside the dedicated gateway Codex home; the home is isolated, not recreated for every request.
+
+The gateway validates `max_tokens` as a positive safe integer, defaults it to 2,600 when omitted, and includes that budget in the Codex prompt. The TypeScript SDK does not expose an exact output-token cap, so this is not a guaranteed upstream token or cost ceiling. The gateway separately rejects final responses larger than the smaller of 262,144 bytes or `max_tokens * 16` bytes before returning them to Studio.
+
+If the provider check fails, verify that the gateway is still running, the port and token match, the configured model is available to the active Codex account, and `codex` can run successfully in the same local environment. Authentication and usage-limit failures come from Codex and follow the active ChatGPT workspace or OpenAI API account.
+
 LM Studio example:
 
 ```dotenv

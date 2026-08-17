@@ -43,7 +43,40 @@ const tarball = path.join(packDir, packOutput.split(/\r?\n/).filter(Boolean).pop
 run("npm", ["init", "-y"], { cwd: installDir });
 run("npm", ["install", tarball, "--engine-strict=false", "--cache", path.join(workDir, "npm-cache")], { cwd: installDir });
 
+const installedPackageRoot = path.join(installDir, "node_modules", "slideotter");
+for (const setupFile of [".env.example", "DEVELOPMENT.md"]) {
+  if (!fs.existsSync(path.join(installedPackageRoot, setupFile))) {
+    throw new Error(`Packaged Codex gateway setup file is missing: ${setupFile}`);
+  }
+}
+
 const slideotter = path.join(installDir, "node_modules", ".bin", process.platform === "win32" ? "slideotter.cmd" : "slideotter");
+const gatewayHelp = run(slideotter, ["codex-gateway", "--help"], {
+  capture: true,
+  cwd: installDir
+});
+if (!gatewayHelp.includes("CODEX_GATEWAY_TOKEN")) {
+  throw new Error("Packaged Codex gateway help did not load");
+}
+const codexSdkProbe = run(process.execPath, [
+  "--input-type=module",
+  "--eval",
+  "import('@openai/codex-sdk').then(({ Codex }) => { new Codex(); process.stdout.write('codex-sdk-ok') })"
+], {
+  capture: true,
+  cwd: installDir
+});
+if (codexSdkProbe !== "codex-sdk-ok") {
+  throw new Error("Packaged Codex SDK could not resolve its native executable");
+}
+const codex = path.join(installDir, "node_modules", ".bin", process.platform === "win32" ? "codex.cmd" : "codex");
+const codexVersion = run(codex, ["--version"], {
+  capture: true,
+  cwd: installDir
+});
+if (!/^codex-cli \d+\.\d+\.\d+$/.test(codexVersion)) {
+  throw new Error(`Packaged Codex native executable returned an unexpected version: ${codexVersion}`);
+}
 run(slideotter, ["init", "--template", "tutorial", "--data-dir", dataDir], { cwd: installDir });
 run(slideotter, ["build", "--data-dir", dataDir], { cwd: installDir });
 run(slideotter, ["validate", "--fast", "--data-dir", dataDir], { cwd: installDir });

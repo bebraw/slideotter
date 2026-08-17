@@ -25,6 +25,8 @@
   },
   "main": "desktop/main.cjs",
   "files": [
+    ".env.example",
+    "DEVELOPMENT.md",
     "desktop/",
     "dist/"
   ],
@@ -108,6 +110,7 @@
     "cloud:client:build": "npm run studio:client:build",
     "cloud:check": "npm run cloud:client:build && wrangler deploy --config cloud/wrangler.toml --dry-run --outdir cloud/dist",
     "cloud:dev": "npm run cloud:client:build && wrangler dev --config cloud/wrangler.toml",
+    "codex:gateway": "node scripts/run-codex-gateway.ts",
     "typecheck": "node scripts/check-strict-types.ts",
     "typecheck:strict": "node ./node_modules/typescript-7/bin/tsc --noEmit",
     "website:dev": "wrangler dev --config website/wrangler.toml",
@@ -118,6 +121,7 @@
   "dependencies": {
     "@hpcc-js/wasm-graphviz": "1.22.2",
     "@napi-rs/canvas": "1.0.1",
+    "@openai/codex-sdk": "0.147.0",
     "pdfjs-dist": "6.2.108",
     "playwright": "1.61.1",
     "pptxgenjs": "https://codeload.github.com/otcaveuni-dev/PptxGenJS/tar.gz/2ea5bafc5a1260c108c7200f6a36519bb6d35bd7",

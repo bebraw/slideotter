@@ -106,7 +106,7 @@ Presentation mode uses cached Piper audio when local narration is configured, an
 - Present the active deck from a browser playback surface, including core-path slides with optional vertical detours, local Piper narration when configured, and optional bundled comic narration avatars.
 - Attach image materials to slides, provide a starter image, import sourced open-license images through Openverse or Wikimedia Commons, or search/import SVGL brand logos, including outline-stage logo suggestions when generated slide guidance names a brand logo.
 - Ground generation with presentation-scoped notes, excerpts, URLs, and image material metadata.
-- Generate first drafts with OpenAI, LM Studio, or OpenRouter, then review candidates before applying changes.
+- Generate first drafts with OpenAI, LM Studio, OpenRouter, or the optional [local Codex gateway](./DEVELOPMENT.md#local-codex-gateway), then review candidates before applying changes.
 - Compare candidate slides and deck plans before applying them.
 - Save and reuse deck-local or favorite layout treatments.
 - Validate layout, text, media references, workflow behavior, and rendered output.

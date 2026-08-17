@@ -103,6 +103,14 @@ transpileTree(path.join(rootDir, "studio", "server"), path.join(distDir, "studio
   module: ts.ModuleKind.ES2022,
   target: ts.ScriptTarget.ES2022
 });
+transpileTypeScript(
+  path.join(rootDir, "scripts", "run-codex-gateway.ts"),
+  path.join(distDir, "scripts", "run-codex-gateway.js"),
+  {
+    module: ts.ModuleKind.ES2022,
+    target: ts.ScriptTarget.ES2022
+  }
+);
 
 const binFile = path.join(distDir, "bin", "slideotter.mjs");
 if (fs.existsSync(binFile)) {

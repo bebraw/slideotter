@@ -1,6 +1,6 @@
 # LLM Generation Developer Guide
 
-This guide maps the generation path for coding work. Product behavior is governed by ADR 0010, ADR 0011, ADR 0017, and ADR 0028: LLMs propose structured candidates, while local code validates, previews, and applies.
+This guide maps the generation path for coding work. Product behavior is governed by ADR 0010, ADR 0011, ADR 0017, ADR 0028, and ADR 0066: LLMs propose structured candidates, while local code validates, previews, and applies.
 
 ## Owns
 
@@ -12,6 +12,8 @@ This guide maps the generation path for coding work. Product behavior is governe
 ## Key Files
 
 - `studio/server/services/llm/client.ts`: provider selection, request transport, structured JSON parsing, retry handling, and status reporting.
+- `studio/server/services/llm/codex-gateway.ts`: loopback-only OpenAI-compatible transport, request bounds, and Codex SDK mapping.
+- `scripts/run-codex-gateway.ts`: manual local gateway configuration and lifecycle entrypoint.
 - `studio/server/services/llm/prompts.ts`: workflow prompts for wording, slide ideation, and redo layout.
 - `studio/server/services/llm/schemas.ts`: structured response schemas for generated candidates.
 - `studio/server/services/presentation-generation.ts`: staged creation, outline plans, single-slide drafting, local fallback materialization, and generation validation.
@@ -27,6 +29,11 @@ This guide maps the generation path for coding work. Product behavior is governe
 - Source-grounded workflows should include enough evidence to review citations without sending unrelated source packs.
 - Material context should be scoped to the workflow and target slide.
 - Diagnostics should make provider status, retrieval context, and prompt budget regressions inspectable.
+- The Codex gateway stays loopback-only, accepts no caller-controlled working directory or Codex arguments, and never owns the upstream ChatGPT or API-key credential.
+- Gateway Codex runs require a separately authenticated, regular file-backed `CODEX_GATEWAY_CODEX_HOME/auth.json`. The home rejects `config.toml`, `requirements.toml`, `AGENTS.md`, `AGENTS.override.md`, `.agents`, plugins, rules, hooks, and custom skills; only Codex-owned `skills/.system` is allowed under its `skills/` directory.
+- The child forces `HOME`, `USERPROFILE`, and `CODEX_HOME` to that directory, removes real home/XDG inheritance, and pins project discovery to a marker inside each request directory. It never inherits normal `~/.codex`, `~/.agents/skills`, repository customization, shared-keyring credentials, or Studio provider keys.
+- Do not claim the gateway is skill-free. Codex-owned system skills, vendor-bundled skills, and machine-admin skills, configuration, and MCP definitions under `/etc/codex` remain trusted inputs; executable/network tool features are disabled.
+- Treat `max_tokens` as a validated prompt budget plus a derived response-byte limit, not an exact Codex SDK token or cost cap. Fresh SDK threads leave metadata in the dedicated Codex home and are not ephemeral per request.
 
 ## Common Write Paths
 

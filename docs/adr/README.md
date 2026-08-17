@@ -67,6 +67,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0061: Hypermedia Knowledge Memory And Derived Slidesets](./implemented/0061-hypermedia-knowledge-memory-and-derived-slidesets.md)
 - [0062: Dedicated Memory Workbench](./implemented/0062-dedicated-memory-workbench.md)
 - [0063: Surface-Specific Browser Support And Web Guidance](./implemented/0063-surface-specific-browser-support.md)
+- [0066: Local Codex Gateway](./implemented/0066-local-codex-gateway.md)
 
 ## Proposed
 

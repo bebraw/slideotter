@@ -103,6 +103,7 @@ Usage:
 
 Commands:
   studio              Start the local browser studio. This is the default.
+  codex-gateway       Start the loopback-only local Codex gateway.
   init                Create or repair the user data directory.
   data-dir            Print the resolved user data directory.
   paths               Print resolved runtime paths and whether they exist.
@@ -133,6 +134,7 @@ Options:
 
 Examples:
   slideotter
+  slideotter codex-gateway --help
   slideotter init --template tutorial
   slideotter paths --ensure
   slideotter llm lmstudio --model qwen/qwen3.5-9b
@@ -452,6 +454,39 @@ async function dispatchCommand(command, argv, flags) {
   process.exitCode = 1;
 }
 
+async function handleCodexGatewayCommand(command, argv, flags) {
+  if (command !== "codex-gateway") {
+    return false;
+  }
+
+  const gatewayArgs = [];
+  for (let index = 1; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--data-dir") {
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--data-dir=")) {
+      continue;
+    }
+    gatewayArgs.push(arg);
+  }
+
+  const helpRequested = gatewayArgs.includes("--help") || gatewayArgs.includes("-h");
+  if (!helpRequested) {
+    const dataDir = flags.get("data-dir");
+    if (dataDir === true || dataDir === "") {
+      throw new Error("Set --data-dir to a directory path.");
+    }
+    configureDataRoot(flags);
+    ensureDefaultDataRoot();
+  }
+
+  const { runCodexGatewayCli } = await import("../scripts/run-codex-gateway.ts");
+  await runCodexGatewayCli(gatewayArgs);
+  return true;
+}
+
 function handleHelpCommand(command, flags) {
   if (command !== "help" && !flags.get("help")) {
     return false;
@@ -482,6 +517,11 @@ function handleRuntimeRootCommand(command, flags) {
 async function main() {
   const argv = process.argv.slice(2);
   const { command, flags } = parseArgs(argv);
+
+  if (await handleCodexGatewayCommand(command, argv, flags)) {
+    return;
+  }
+
   configureDataRoot(flags);
 
   if (handleHelpCommand(command, flags) || handleInitialCommand(command, flags)) {

@@ -32,6 +32,11 @@ flowchart LR
         domValidate["/studio/server/services/dom-validate.ts"]
     end
 
+    subgraph localProviders["Optional local provider processes"]
+        codexGateway["Codex gateway CLI"]
+        localCodex["Codex SDK + isolated CODEX_HOME"]
+    end
+
     subgraph runtime["Shared DOM runtime"]
         slideDom["/studio/client/slide-dom.ts"]
         deckPreview["/deck-preview"]
@@ -57,6 +62,8 @@ flowchart LR
     operations --> sources
     operations --> materialService
     operations --> llm
+    llm --> codexGateway
+    codexGateway --> localCodex
     operations --> deckLength
     operations --> slides
     slides --> slideDom
@@ -79,9 +86,11 @@ flowchart LR
 
 `/presentations/<id>/` is the repo-mode deck workspace. In app mode the same deck shape lives under `~/.slideotter/presentations/<id>/`. It contains the slide specs, presentation metadata, deck context, sources, hypermedia memory, materials, generation state, and other presentation-local state.
 
-`/bin/slideotter.mjs` is the app command. It initializes user data, starts the studio, builds PDFs, validates decks, and archives output against the active user data root.
+`/bin/slideotter.mjs` is the app command. It initializes user data, starts the studio, starts the manually managed Codex gateway when invoked as `slideotter codex-gateway`, builds PDFs, validates decks, and archives output against the active user data root.
 
 `/desktop/main.cjs` is the macOS Electron wrapper. It starts the packaged studio server on loopback, opens the existing studio client in an isolated desktop window, honors the same user-data environment variables as the CLI, and keeps file writes behind the server boundary.
+
+`/scripts/run-codex-gateway.ts` is the source-tree entrypoint for the optional local Codex gateway; installed packages expose the same process through `slideotter codex-gateway`. It exposes a minimal bearer-token-protected OpenAI-compatible API on loopback and delegates structured generation to `/studio/server/services/llm/codex-gateway.ts`. It is manually started in the first slice; the Electron wrapper does not yet own its lifecycle.
 
 `/scripts/` contains repo command wrappers for build, validation, archive refresh, screenshot capture, baselines, package generation, and fixtures. These wrappers call the same server-side services the studio uses.
 
@@ -157,6 +166,7 @@ Current client maintenance direction:
 | Presentation generation and staged materialization | `/studio/server/services/presentation-generation.ts` |
 | Visible text quarantine and semantic leak classification | `/studio/server/services/visible-text-quality.ts` |
 | LLM provider configuration, prompts, schemas | `/studio/server/services/llm/` |
+| Local Codex OpenAI-compatible gateway | `/studio/server/services/llm/codex-gateway.ts`, `/scripts/run-codex-gateway.ts`, `/bin/slideotter.mjs` |
 | Sources and retrieval | `/studio/server/services/sources.ts` |
 | Hypermedia memory and derived-slideset lineage | `/studio/server/services/memory.ts` |
 | Materials and image imports | `/studio/server/services/materials.ts`, `/studio/server/services/image-search.ts` |
@@ -287,10 +297,12 @@ flowchart TD
     provider --> local["Local deterministic rules"]
     provider --> hosted["OpenAI or OpenRouter"]
     provider --> lmstudio["LM Studio"]
+    provider --> codexGateway["Local Codex gateway"]
 
     local --> repair["Shape and quality guards"]
     hosted --> repair
     lmstudio --> repair
+    codexGateway --> repair
     repair --> shorten["Semantic shortening when needed"]
     shorten --> candidates["Session-only candidates"]
     candidates --> compare["Compare in browser"]
@@ -306,6 +318,14 @@ LLM providers are configured through environment variables and OpenAI-compatible
 - OpenAI-compatible chat completions: `STUDIO_LLM_PROVIDER=openai-compatible`
 - LM Studio: `STUDIO_LLM_PROVIDER=lmstudio`
 - OpenRouter: `STUDIO_LLM_PROVIDER=openrouter`
+
+The local Codex gateway reuses `STUDIO_LLM_PROVIDER=openai-compatible`. A separately started `npm run codex:gateway` or `slideotter codex-gateway` process binds to `127.0.0.1`, requires a high-entropy local bearer token, maps slideotter's non-streaming chat-completion JSON Schema request to the Codex SDK, and returns an OpenAI-compatible envelope. The slideotter server receives the local URL and token through `OPENAI_COMPATIBLE_BASE_URL` and `OPENAI_COMPATIBLE_API_KEY`. The bearer token is not sent to the browser; the loopback URL can appear in provider diagnostics. Codex itself owns the upstream ChatGPT or API-key login inside the required `CODEX_GATEWAY_CODEX_HOME`.
+
+The gateway is not a hosted provider and must not be exposed beyond loopback. It validates the local host and bearer token, rejects browser-origin requests, and bounds body size, concurrency, execution time, and final response bytes. The launcher requires a regular `<gateway-home>/auth.json`, and the child forces file-backed credential storage so it cannot reuse a shared OS keyring. The child receives an explicit environment allowlist with `HOME`, `USERPROFILE`, and `CODEX_HOME` forced to the dedicated gateway directory; real home and XDG config/data paths are removed. Startup rejects that directory when it contains `config.toml`, `requirements.toml`, `AGENTS.md`, `AGENTS.override.md`, `.agents`, plugins, rules, hooks, or custom skills; only Codex-owned `skills/.system` may remain below its `skills/` directory. Consequently, normal `~/.codex` configuration, `~/.agents/skills`, repository customization, and Studio provider keys are not inherited.
+
+Each request runs in an empty temporary working directory with a read-only sandbox, approvals disabled, and executable/network tool features disabled. A private marker in that directory is configured as Codex's project-root marker, so project discovery stops there instead of selecting a `TMPDIR` ancestor. This removes personal, repository, and custom gateway-home skills; it does not remove Codex-owned `skills/.system`, vendor-bundled skills, or machine-admin skills, configuration, and MCP definitions under `/etc/codex`, which remain trusted inputs. The Studio server still owns prompt scope, JSON parsing, quality guards, candidates, validation, and writes. The direct OpenAI provider remains a separate supported path.
+
+Each chat request validates `max_tokens` as a positive safe integer and defaults it to 2,600. The gateway includes the budget in the Codex prompt because the TypeScript SDK does not expose an exact output-token cap. This is not an upstream token or cost ceiling; the deterministic enforcement point is a final-response limit of `min(262144, max_tokens * 16)` bytes. Fresh SDK threads leave session metadata in the dedicated Codex home because the SDK does not expose per-run ephemeral mode.
 
 When LM Studio is active, the LLM status popover can refresh currently loaded models from `/models` and store a runtime model override in ignored runtime state. OpenAI, OpenAI-compatible chat gateways, and OpenRouter model selection remain environment/config driven.
 
