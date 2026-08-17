@@ -10,6 +10,12 @@ These are durable presentation design and workflow rules for this repository. Re
 - Prefer explicit domain types over inferred object blobs, especially at module, API, fixture, and workflow boundaries.
 - Do not silence type errors with `as unknown as`, `@ts-ignore`, or broad casts. Use local guards, narrower interfaces, or small helper types instead.
 
+### Browser Platform Guidance
+
+- Use `.codex/skills/modern-web-guidance/` when substantive browser work requires choosing a platform feature, interpreting compatibility, or designing a fallback; skip routine edits that already follow repository patterns.
+- Keep `docs/ARCHITECTURE.md`, relevant ADRs, typed boundaries, user instructions, and tests authoritative over retrieved examples.
+- Apply the surface-specific browser contract: Baseline Widely core behavior plus progressive enhancement for the public website, and Chromium-tested support for Studio, Electron, hosted-client, and export automation unless broader evidence is added.
+
 ### Design Rules
 
 - Treat projected-slide typography as presentation content, not document content.

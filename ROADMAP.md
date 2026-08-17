@@ -37,6 +37,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0030-cloudflare-collaboration.md`](./docs/adr/proposed/0030-cloudflare-collaboration.md) for adding workspace sharing, versioned edits, comments, and live sessions on top of the Cloudflare-hosted model
 - [`docs/adr/implemented/0061-hypermedia-knowledge-memory-and-derived-slidesets.md`](./docs/adr/implemented/0061-hypermedia-knowledge-memory-and-derived-slidesets.md) for implemented presentation-scoped hypermedia memory, bounded generation retrieval, a compact Memory drawer, and derived-slideset lineage records
 - [`docs/adr/implemented/0062-dedicated-memory-workbench.md`](./docs/adr/implemented/0062-dedicated-memory-workbench.md) for the implemented dedicated Memory view that visualizes and manipulates typed memory resources, evidence, dependencies, and derived slidesets
+- [`docs/adr/implemented/0063-surface-specific-browser-support.md`](./docs/adr/implemented/0063-surface-specific-browser-support.md) for the public Baseline Widely core, Chromium-tested Studio/export boundary, and scoped modern-web guidance workflow
 - [`docs/adr/implemented/0048-title-slide-editorial-quality.md`](./docs/adr/implemented/0048-title-slide-editorial-quality.md) for implemented generated title slides with explicit opening intent and a small set of editorial cover treatments
 - [`docs/adr/implemented/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md`](./docs/adr/implemented/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md) for the implemented minimal core layout set and user-defined layout expansion path
 - [`docs/adr/implemented/0050-visible-text-quarantine.md`](./docs/adr/implemented/0050-visible-text-quarantine.md) for the implemented shared boundary that blocks semantic leaks before generated or candidate text reaches slide-visible fields
@@ -103,6 +104,7 @@ The active architecture is DOM-first and presentation-scoped.
 - The browser now has a dedicated `/present` route for full-screen-friendly slide playback, including two-dimensional core-path and detour navigation plus reviewable narrated playback with optional auto-advance, and future presentation-only behavior should build on that surface rather than on the authoring workspace.
 - User-created slide sets, presentation state, sources, materials, snapshots, deck context, baselines, and reusable user libraries live under `~/.slideotter` in app mode; the bundled slideotter tutorial presentation remains in the application repository as product documentation and a development fixture.
 - LLMs should plan and propose structured content, not execute runtime behavior or write arbitrary project files.
+- Browser compatibility follows ADR 0063: the public website keeps a Baseline Widely core with progressive enhancement, while Studio, Electron, hosted-client, and export automation currently claim only the Chromium path exercised by Playwright.
 
 Do not reintroduce a second long-lived rendering path beside the shared DOM runtime.
 

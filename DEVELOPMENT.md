@@ -266,6 +266,8 @@ Use `slide-clarity-drill` when slide wording needs line-by-line tightening befor
 
 Use the repo-local `agent-ci` developer skill for workflow-sensitive changes and explicit local CI readiness checks.
 
+Use the repo-local `modern-web-guidance` developer skill when browser-facing implementation requires choosing a platform feature, checking compatibility, or designing a fallback. Its pinned, telemetry-disabled retrieval is advisory; the surface-specific support contract in `docs/ARCHITECTURE.md` and [ADR 0063](docs/adr/implemented/0063-surface-specific-browser-support.md) remains authoritative.
+
 Typical requests:
 
 ```text

@@ -257,6 +257,17 @@ sequenceDiagram
 
 The DOM renderer in `/studio/client/slide-dom.ts` is authoritative. Browser preview, compare views, thumbnails, `/deck-preview`, `/present`, PDF export, and DOM validation all use that same slide runtime. `/present` includes core slides plus detours and accepts `#x=<index>,y=<index>` hashes; `/deck-preview`, PDF export, preview PNGs, and PPTX handoff stay on the core path by default.
 
+## Browser Support And Web Platform Guidance
+
+Browser support is defined per surface rather than inferred from one automated browser:
+
+- The public `website/` Worker targets Baseline Widely available core behavior. Limited-availability APIs may enhance that surface only behind feature detection with a usable fallback.
+- The Studio client, `/deck-preview`, `/present`, the hosted client, Electron wrapper, and browser-driven export path are exercised with the pinned Playwright Chromium runtime. That is the supported automated path and does not claim Firefox, Safari, or mobile-browser coverage.
+- PDF and PPTX files are browser-independent once generated. Their production and validation path still depends on the Chromium-rendered DOM runtime.
+- New browser APIs should follow the existing progressive-enhancement pattern used for dialog, `ResizeObserver`, and `visualViewport`. Add a polyfill, compatibility dependency, or browser matrix only with explicit scope and verification.
+
+For substantive web-platform choices, the repo-local `modern-web-guidance` skill retrieves pinned, telemetry-disabled guidance as implementation input. Repository architecture, typed client/server boundaries, security constraints, and tests remain authoritative. See [ADR 0063](adr/implemented/0063-surface-specific-browser-support.md) for the durable decision and evidence boundary.
+
 ## Generation Flow
 
 ```mermaid

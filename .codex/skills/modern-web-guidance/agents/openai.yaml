@@ -1,0 +1,6 @@
+interface:
+  display_name: "Modern Web Guidance"
+  short_description: "Retrieve current browser platform guidance"
+  default_prompt: "Use $modern-web-guidance to choose a current browser API and a surface-appropriate fallback for this task."
+policy:
+  allow_implicit_invocation: true
