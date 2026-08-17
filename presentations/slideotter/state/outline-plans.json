@@ -772,10 +772,10 @@
             },
             {
               "id": "intent-35",
-              "intent": "The staged path exists now. Next: clearer progress, recovery, and validation.",
+              "intent": "The next source test starts with a real paper: review the source pair, approve a timed outline, then draft from traceable evidence.",
               "layoutHint": "content",
               "mustInclude": [
-                "The staged path exists now. Next: clearer progress, recovery, and validation."
+                "The next source test starts with a real paper: review the source pair, approve a timed outline, then draft from traceable evidence."
               ],
               "role": "concept",
               "sourceSlideId": "slide-35",
@@ -785,7 +785,7 @@
                   "slideId": "slide-35"
                 }
               ],
-              "workingTitle": "Keep the staged path sturdy"
+              "workingTitle": "Turn papers into reviewed talk plans"
             },
             {
               "id": "intent-36",

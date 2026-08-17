@@ -2,48 +2,48 @@
   "type": "content",
   "layout": "checklist",
   "index": 35,
-  "title": "Keep the workbench sturdy",
+  "title": "Turn papers into reviewed talk plans",
   "eyebrow": "Maintenance focus",
-  "summary": "The main surfaces exist now. Let real decks, field failures, and diagnostic evidence choose the next hardening work.",
-  "signalsTitle": "Deepen next",
+  "summary": "The next source test starts with a real paper: review the source pair, approve a timed outline, then draft from traceable evidence.",
+  "signalsTitle": "Build next",
   "guardrailsTitle": "Keep intact",
   "signals": [
     {
       "id": "signal-preview",
-      "title": "User layouts",
-      "body": "Extend from real needs."
+      "title": "Reviewed import",
+      "body": "Inspect source and PDF."
     },
     {
       "id": "signal-theme",
-      "title": "Source misses",
-      "body": "Improve retrieval from failures."
+      "title": "Timed narrative",
+      "body": "Budget content and buffer."
     },
     {
       "id": "signal-sources",
-      "title": "Code hotspots",
-      "body": "Let diagnostics scope refactors."
+      "title": "Evidence links",
+      "body": "Keep section and page locators."
     }
   ],
   "guardrails": [
     {
       "id": "guardrail-outline",
-      "title": "Locked outline",
-      "body": "Draft from the approved snapshot."
+      "title": "Never run TeX",
+      "body": "Inspect files without execution."
     },
     {
       "id": "guardrail-apply",
-      "title": "Explicit apply",
-      "body": "Candidates wait for approval."
+      "title": "Explicit gates",
+      "body": "Approve digest and outline."
     },
     {
       "id": "guardrail-docs",
-      "title": "Docs move too",
-      "body": "Roadmap, ADRs, and slides stay aligned."
+      "title": "Compact prompts",
+      "body": "Send only selected evidence."
     }
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 13,
-    "script": "The main surfaces exist now. Let real decks, field failures, and diagnostic evidence choose the next hardening work. Extend from real needs."
+    "durationSeconds": 15,
+    "script": "The next source-grounding test starts with a real paper. Review the LaTeX and PDF, approve a timed outline, then draft from traceable evidence without running TeX or sending the whole paper to every prompt."
   }
 }

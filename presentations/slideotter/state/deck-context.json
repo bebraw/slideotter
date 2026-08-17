@@ -50,7 +50,7 @@
       "progressFill": "275d8c"
     },
     "themeBrief": "Clean local-workbench presentation with friendly onboarding language, varied information layouts, and restrained technical detail.",
-    "outline": "1. slideotter\n2. What you will learn\n3. The problem and the loop\n4. Why decks get messy\n5. A simple authoring loop\n6. Author in the workbench\n7. Choose a presentation first\n8. Give the deck a brief and sources\n9. Slides are readable JSON\n10. Edit with the slide in view\n11. Attach images as materials\n12. One renderer keeps previews honest\n13. Review before applying\n14. Generate options, not surprises\n15. Compare before applying\n16. Plan the deck from Slide Studio\n17. Use chat for bounded tasks\n18. Guardrails and handoff\n19. Know what can change\n20. Run checks before sharing\n21. Archive the version you mean to share\n22. How to read the project\n23. Current architecture bets\n24. Build new decks in stages\n25. Creation is staged\n26. Brief captures just enough\n27. Approve structure before slides\n28. Regenerate only weak beats\n29. Draft one slide at a time\n30. Theme after content\n31. Sources join the outline\n32. Make the staged flow real\n33. Draft state survives restarts\n34. Validate the staged path\n35. Keep the workbench sturdy\n36. The basic habit",
+    "outline": "1. slideotter\n2. What you will learn\n3. The problem and the loop\n4. Why decks get messy\n5. A simple authoring loop\n6. Author in the workbench\n7. Choose a presentation first\n8. Give the deck a brief and sources\n9. Slides are readable JSON\n10. Edit with the slide in view\n11. Attach images as materials\n12. One renderer keeps previews honest\n13. Review before applying\n14. Generate options, not surprises\n15. Compare before applying\n16. Plan the deck from Slide Studio\n17. Use chat for bounded tasks\n18. Guardrails and handoff\n19. Know what can change\n20. Run checks before sharing\n21. Archive the version you mean to share\n22. How to read the project\n23. Current architecture bets\n24. Build new decks in stages\n25. Creation is staged\n26. Brief captures just enough\n27. Approve structure before slides\n28. Regenerate only weak beats\n29. Draft one slide at a time\n30. Theme after content\n31. Sources join the outline\n32. Make the staged flow real\n33. Draft state survives restarts\n34. Validate the staged path\n35. Turn papers into reviewed talk plans\n36. The basic habit",
     "structureLabel": "",
     "structureSummary": "",
     "structurePlan": [],
@@ -335,9 +335,9 @@
       "value": ""
     },
     "slide-35": {
-      "title": "Keep the workbench sturdy",
-      "intent": "The main surfaces exist now. Let real decks, field failures, and diagnostic evidence choose the next hardening work.",
-      "mustInclude": "The main surfaces exist now. Let real decks, field failures, and diagnostic evidence choose the next hardening work.",
+      "title": "Turn papers into reviewed talk plans",
+      "intent": "The next source test starts with a real paper: review the source pair, approve a timed outline, then draft from traceable evidence.",
+      "mustInclude": "The next source test starts with a real paper: review the source pair, approve a timed outline, then draft from traceable evidence.",
       "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
       "layoutHint": "content",
       "value": ""

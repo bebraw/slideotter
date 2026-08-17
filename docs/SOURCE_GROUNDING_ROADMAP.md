@@ -43,8 +43,10 @@ This document tracks the next practical steps for combining Slideotter's determi
    - Keep embeddings or vector storage as a later option once real decks show keyword retrieval misses.
 
 5. **Citation Discipline**
+   - Status: retrieval metadata is implemented; paper-grade provenance and non-URL reference identity are proposed in ADR 0064 and ADR 0065.
    - Store retrieved snippet metadata on generation results.
-   - Later, allow slides or speaker notes to reference source titles and URLs when a visible claim depends on source material.
+   - Preserve stable source, BibTeX, section, page, and figure locators internally before expanding visible citation rendering.
+   - Later, allow slides or speaker notes to reference source titles, bibliography entries, and URLs when a visible claim depends on source material.
    - Avoid visible citation clutter until the slide language and layout rules are ready for it.
 
 6. **URL Fetch Hardening**
@@ -67,17 +69,34 @@ This document tracks the next practical steps for combining Slideotter's determi
    - Image search can import bounded results from Openverse or Wikimedia Commons before generation; users can set source/license restrictions such as `license:cc0` or `source:flickr`.
    - Imported images retain provider, creator, license, license URL, and source URL metadata when available, and generated slide media captions include the source/credit line.
 
+9. **Reviewed Paper Import**
+   - Status: proposed in ADR 0064.
+   - Accept a bounded LaTeX source archive and rendered PDF through raw file upload rather than base64 JSON.
+   - Treat LaTeX as semantic authority and PDF as page and visual authority while grouping both representations as one paper.
+   - Preview structure, bibliography, figures, extraction warnings, and fingerprints before confirmation writes presentation sources or materials.
+   - Preserve original-source ranges, PDF pages, figure origins, and independent artifact fingerprints in chunks and diagnostics.
+   - Reuse Kirjolab's bounded pure TypeScript importer and tests through a Slideotter-specific adapter without importing its Cloudflare application runtime.
+
+10. **Timed Paper-To-Presentation Creation**
+    - Status: proposed in ADR 0065.
+    - Review a compact paper digest and figure inventory before outline generation.
+    - Make target duration and delivery buffer first-class while retaining slide count as an editable heuristic.
+    - Let outline beats carry planned time, key message, evidence pointers, and optional figure candidates.
+    - Draft each slide from only its approved beat and selected evidence through the existing progressive creation flow.
+    - Keep internal claim and figure provenance mandatory before adding broader visible citation treatments.
+
 ## Non-Goals For Now
 
 - No vector database until keyword retrieval proves insufficient.
 - No open-ended automatic web search as part of generation; current image search is an explicit create-time material import with provider and restriction controls.
 - No mandatory citations on every generated slide.
-- No source management system beyond presentation-scoped notes, excerpts, and URLs.
+- No general research-library or arbitrary document-ingestion system. The proposed paper path stays presentation-scoped and purpose-built for reviewed talk creation.
+- No TeX execution, automatic OCR, or semantic PDF figure extraction in the first paper-import slice.
 
 ## Follow-Up Notes
 
 - Tune retrieval against real generated decks before adding heavier retrieval infrastructure.
 - Decide where source-backed claims should surface: diagnostics only, speaker notes, resource panels, or visible slide copy.
-- Keep the single starter-source field until real usage shows that multiple titled starter sources are needed during creation.
+- Keep the ordinary starter-source field compact. Structured paper import may persist multiple titled section and representation records because the paper workflow has now demonstrated that need.
 - Consider embeddings or vector search only after keyword retrieval misses useful material in real decks.
 - Add a short user-facing "ground a deck with sources" section to `docs/GETTING_STARTED.md` once the workflow has had more practical use.
