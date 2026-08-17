@@ -4,19 +4,19 @@
   "index": 20,
   "title": "Run checks before sharing",
   "eyebrow": "Validation",
-  "summary": "Validation stays subtle in the UI, but it is the final safety net before a PDF becomes the shared version.",
+  "summary": "Agent CI JSON events and local heartbeats keep long validation runs observable.",
   "signalsTitle": "Gate coverage",
   "guardrailsTitle": "What failures mean",
   "signals": [
     {
       "id": "signal-types",
-      "title": "Types",
-      "body": "Studio, server, and scripts compile."
+      "title": "Code checks",
+      "body": "TypeScript 7 and Oxlint guard correctness."
     },
     {
       "id": "signal-layout",
-      "title": "Layout",
-      "body": "Rendered slide bounds, text, and contrast."
+      "title": "Diagnostics",
+      "body": "Fallow maps health, hotspots, and coupling."
     },
     {
       "id": "signal-media",
@@ -44,6 +44,6 @@
   "narration": {
     "advance": "afterSpeech",
     "durationSeconds": 16,
-    "script": "Validation stays subtle in the UI, but it is the final safety net before a PDF becomes the shared version. Studio, server, and scripts compile."
+    "script": "Agent CI JSON events and local heartbeats keep long validation runs observable. TypeScript 7 and Oxlint guard correctness, while Fallow maps health, hotspots, and coupling."
   }
 }

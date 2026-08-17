@@ -4,13 +4,13 @@
   "index": 34,
   "title": "Validate the staged path",
   "eyebrow": "Coverage",
-  "summary": "Browser coverage now exercises creation, materials, length scaling, duplicate, and delete through the real UI.",
+  "summary": "Studio and Electron UI checks target Chromium; exported PDFs and published presentations are intended for broad compatibility.",
   "signalsTitle": "Workflow checks",
   "guardrailsTitle": "Regression risks",
   "signals": [
     {
       "id": "signal-brief",
-      "title": "Browser flow",
+      "title": "Chromium flow",
       "body": "Draft a new presentation."
     },
     {
@@ -44,6 +44,6 @@
   "narration": {
     "advance": "afterSpeech",
     "durationSeconds": 12,
-    "script": "Browser coverage now exercises creation, materials, length scaling, duplicate, and delete through the real UI. Draft a new presentation."
+    "script": "Studio and Electron UI checks target Chromium. Exported PDFs and published presentations are intended for broad compatibility."
   }
 }

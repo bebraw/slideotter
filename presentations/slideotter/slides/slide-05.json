@@ -4,7 +4,7 @@
   "index": 5,
   "title": "A simple authoring loop",
   "eyebrow": "Workflow",
-  "summary": "Most work follows four steps and leaves readable local state.",
+  "summary": "Most authoring follows three steps and leaves readable local state.",
   "signalsTitle": "Daily flow",
   "guardrailsTitle": "Why it stays calm",
   "signals": [
@@ -44,6 +44,6 @@
   "narration": {
     "advance": "afterSpeech",
     "durationSeconds": 9,
-    "script": "Most work follows four steps and leaves readable local state. Capture objective, outline, audience."
+    "script": "Most authoring follows three steps and leaves readable local state. Capture objective, outline, audience."
   }
 }

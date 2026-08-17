@@ -96,8 +96,8 @@
     },
     "slide-05": {
       "title": "A simple authoring loop",
-      "intent": "Most work follows four steps and leaves readable local state.",
-      "mustInclude": "Most work follows four steps and leaves readable local state.",
+      "intent": "Most authoring follows three steps and leaves readable local state.",
+      "mustInclude": "Most authoring follows three steps and leaves readable local state.",
       "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
       "layoutHint": "content",
       "value": ""
@@ -216,8 +216,8 @@
     },
     "slide-20": {
       "title": "Run checks before sharing",
-      "intent": "Validation stays subtle in the UI, but it is the final safety net before a PDF becomes the shared version.",
-      "mustInclude": "Validation stays subtle in the UI, but it is the final safety net before a PDF becomes the shared version.",
+      "intent": "Agent CI JSON events and local heartbeats keep long validation runs observable.",
+      "mustInclude": "Agent CI JSON events and local heartbeats keep long validation runs observable.",
       "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
       "layoutHint": "content",
       "value": ""
@@ -328,16 +328,16 @@
     },
     "slide-34": {
       "title": "Validate the staged path",
-      "intent": "Browser coverage now exercises creation, materials, length scaling, duplicate, and delete through the real UI.",
-      "mustInclude": "Browser coverage now exercises creation, materials, length scaling, duplicate, and delete through the real UI.",
+      "intent": "Studio and Electron UI checks target Chromium; exported PDFs and published presentations are intended for broad compatibility.",
+      "mustInclude": "Studio and Electron UI checks target Chromium; exported PDFs and published presentations are intended for broad compatibility.",
       "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
       "layoutHint": "content",
       "value": ""
     },
     "slide-35": {
       "title": "Keep the workbench sturdy",
-      "intent": "The main surfaces exist now. Next work should come from real decks and concrete maintenance friction.",
-      "mustInclude": "The main surfaces exist now. Next work should come from real decks and concrete maintenance friction.",
+      "intent": "The main surfaces exist now. Let real decks, field failures, and diagnostic evidence choose the next hardening work.",
+      "mustInclude": "The main surfaces exist now. Let real decks, field failures, and diagnostic evidence choose the next hardening work.",
       "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
       "layoutHint": "content",
       "value": ""

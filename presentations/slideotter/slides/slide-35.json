@@ -4,7 +4,7 @@
   "index": 35,
   "title": "Keep the workbench sturdy",
   "eyebrow": "Maintenance focus",
-  "summary": "The main surfaces exist now. Next work should come from real demo decks and concrete maintenance friction.",
+  "summary": "The main surfaces exist now. Let real decks, field failures, and diagnostic evidence choose the next hardening work.",
   "signalsTitle": "Deepen next",
   "guardrailsTitle": "Keep intact",
   "signals": [
@@ -20,8 +20,8 @@
     },
     {
       "id": "signal-sources",
-      "title": "Hosted paths",
-      "body": "Harden from deployments."
+      "title": "Code hotspots",
+      "body": "Let diagnostics scope refactors."
     }
   ],
   "guardrails": [
@@ -44,6 +44,6 @@
   "narration": {
     "advance": "afterSpeech",
     "durationSeconds": 13,
-    "script": "The main surfaces exist now. Next work should come from real demo decks and concrete maintenance friction. Extend from real needs."
+    "script": "The main surfaces exist now. Let real decks, field failures, and diagnostic evidence choose the next hardening work. Extend from real needs."
   }
 }

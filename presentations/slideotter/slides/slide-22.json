@@ -21,7 +21,7 @@
     {
       "id": "signal-scripts",
       "title": "scripts/",
-      "body": "Build, validation, archive commands."
+      "body": "Build, validation, diagnostics, archive commands."
     }
   ],
   "guardrails": [
@@ -38,7 +38,7 @@
     {
       "id": "guardrail-gate",
       "title": "Gate locally",
-      "body": "Run quality checks before committing."
+      "body": "Run diagnostics and quality checks before committing."
     }
   ],
   "narration": {
