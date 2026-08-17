@@ -309,7 +309,7 @@ function installSmokeLlmMock(): void {
       return createLmStudioStreamResponse(createSmokeTheme());
     }
 
-    return originalFetch(url, init);
+    throw new Error(`Presentation workflow smoke mock does not handle schema "${schemaName || "unknown"}".`);
   };
 }
 
