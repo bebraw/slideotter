@@ -236,8 +236,7 @@ function createDefaultDeckContext(fields: JsonObject = {}): JsonObject {
       constraints: fields.constraints || "",
       designConstraints: normalizeDesignConstraints({
         ...defaultDesignConstraints,
-        // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- Stored presentation fields are unknown until normalization.
-        ...(fields.designConstraints || {})
+        ...asJsonObject(fields.designConstraints)
       }),
       validationSettings,
       visualTheme,
@@ -447,8 +446,7 @@ function normalizeSavedThemes(themes: unknown): JsonObject[] {
         name: String(theme.name || theme.id || `Theme ${index + 1}`),
         theme: normalizeVisualTheme({
           ...defaultVisualTheme,
-          // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- Saved theme payloads are unknown until normalization.
-          ...(theme.theme || theme.visualTheme || {})
+          ...asJsonObject(theme.theme || theme.visualTheme)
         }),
         updatedAt: theme.updatedAt || null
       };

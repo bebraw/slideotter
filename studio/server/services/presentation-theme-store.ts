@@ -6,6 +6,7 @@ import {
   theme as defaultVisualTheme
 } from "./deck-theme.ts";
 import {
+  asJsonObject,
   type JsonObject
 } from "./presentation-state.ts";
 import {
@@ -31,8 +32,7 @@ function saveRuntimeTheme(fields: JsonObject = {}): JsonObject {
     name,
     theme: normalizeVisualTheme({
       ...defaultVisualTheme,
-      // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- Stored theme fields are unknown until normalization.
-      ...(fields.theme || fields.visualTheme || {})
+      ...asJsonObject(fields.theme || fields.visualTheme)
     }),
     updatedAt: timestamp
   };

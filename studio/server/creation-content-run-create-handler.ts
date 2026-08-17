@@ -177,10 +177,8 @@ async function resolveDraftCreateContext(params: {
   normalizeCreationFields: CreationContentRunCreateHandlerDependencies["normalizeCreationFields"];
 }): Promise<DraftCreateContext> {
   const fields = params.normalizeCreationFields({
-    // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- The JSON boundary keeps these fields unknown until normalization.
-    ...(params.current.fields || {}),
-    // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- The JSON boundary keeps these fields unknown until normalization.
-    ...(params.body.fields || {})
+    ...params.jsonObjectOrEmpty(params.current.fields),
+    ...params.jsonObjectOrEmpty(params.body.fields)
   });
   const deckPlan = params.jsonObjectOrEmpty(params.body.deckPlan || params.current.deckPlan);
   const creationTitle = inferCreationTitle(fields, deckPlan, "");

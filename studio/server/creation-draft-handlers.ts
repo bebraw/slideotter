@@ -210,8 +210,7 @@ function buildSavedCreationDraftFields(
   current: CreationDraft
 ): CreationFields {
   return {
-    // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- Persisted draft fields cross an unknown JSON boundary.
-    ...(current.fields || {}),
+    ...(deps.isJsonObject(current.fields) ? current.fields : {}),
     ...deps.normalizeCreationFields(deps.isJsonObject(body.fields) ? body.fields : body)
   };
 }
@@ -329,8 +328,7 @@ function getOutlineSlideRequest(
 
   const fields: CreationFields = {
     ...deps.normalizeCreationFields({
-      // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread -- Persisted draft fields cross an unknown JSON boundary.
-      ...(current.fields || {}),
+      ...(deps.isJsonObject(current.fields) ? current.fields : {}),
       ...(deps.isJsonObject(body.fields) ? body.fields : {})
     }),
     targetSlideCount: slides.length
