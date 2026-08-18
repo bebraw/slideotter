@@ -28,7 +28,7 @@ The browser studio baseline is complete.
 - Deck and slide context, design constraints, validation settings, visual theme values, and manual snapshots persist with the active presentation; shared deck readers now resolve through the active presentation context; assistant sessions and the presentation registry remain under the active runtime state root; generated slide candidates stay session-only until applied.
 - Presentation material metadata and uploaded image files persist with the active presentation; Slide Studio can upload, attach, and detach image materials, search SVGL for brand logos, import selected sanitized SVG logos as presentation-scoped materials, and structured slide specs can carry one optional media attachment rendered by the DOM slide runtime. Staged deck planning can name explicit logo needs in slide `visualNeed`, and outline review surfaces those as user-approved SVGL import suggestions before drafting.
 - Presentation source notes, excerpts, and URLs persist with the active presentation; the Slide Studio Outline drawer can store them and generation retrieves matching snippets as grounded draft material before falling back to model knowledge or local rules.
-- File-backed paper intake is not implemented. Proposed ADR 0064 and ADR 0065 define a local-first path for reviewed LaTeX/PDF import, a compact paper digest, duration-aware outline planning, stable evidence locators, and original figure candidates without bypassing the current source, material, outline-approval, or progressive drafting boundaries.
+- File-backed paper intake is not implemented. The private `@kirjolab/paper-import@0.1.0` package candidate has passed an isolated consumer audit and now supplies the proposed bounded archive, exact prose provenance, preview-identity, conformance, and PDF-text seams; Slideotter still needs to pin its artifact, add the adapter, and build the reviewed LaTeX/PDF workflow from ADR 0064 and ADR 0065 without bypassing current source, material, outline-approval, or progressive drafting boundaries.
 - Presentation-scoped hypermedia memory is implemented under `presentations/<id>/state/memory.json`. The server stores typed claims, evidence, concepts, audience assumptions, style notes, decisions, and review notes; exposes memory collections, items, evidence, dependent-slide, search, and derived-slideset resources under `/api/v1`; enforces memory base versions on writes; retrieves bounded keyword memory snippets into deck planning and slide drafting prompts; records derived-slideset lineage for outline-derived decks and deck-length projections; and surfaces a compact Memory drawer for manual authoring, search, and inspection.
 - A dedicated Memory page is implemented from ADR 0062. It loads the active presentation's memory resources, filters by search, type, status, evidence state, usage, and confidence, sorts warning-heavy memory first, shows summary counters, creates new memory items, retires selected items through versioned hypermedia actions, renders clickable grouped memory-to-evidence-to-linked-slide-to-inferred-slide-to-derived-deck paths, separates linked and inferred dependency labels, shows derived-deck knowledge versus outline comparison summaries, and exposes memory maintenance findings in the presentation check report.
 - The included `slideotter` project presentation is a thirty-six-slide onboarding deck with first-class divider slides and varied layouts covering the problem, authoring loop, presentation selection, context, structured slides, materials, generation, review, validation, archive, codebase orientation, staged creation, and roadmap.
@@ -110,7 +110,7 @@ The browser studio baseline is complete.
 - Keep future UI changes aligned with the pragmatic review direction: prioritize the active presentation, active slide, current workflow, compact status, and inspectable secondary controls.
 - Keep generated artifacts, archive publishing, visual baselines, and workflow coverage tied to the active presentation as multiple-deck workflows expand.
 - Keep staged creation behavior aligned with implemented ADR 0004 and ADR 0039 when changing brief, outline, content-run, theme, or enrichment steps.
-- Treat proposed ADR 0064 and ADR 0065 as the next concrete source-grounding workflow: reuse a bounded Kirjolab-derived import core, keep LaTeX semantic and PDF page/visual authority distinct, require digest and timed-outline review, preserve internal provenance before visible citations, and keep OCR and cloud extraction out of the first slice.
+- Treat proposed ADR 0064 and ADR 0065 as the next concrete source-grounding workflow: begin with a pinned private `@kirjolab/paper-import@0.1.0` adapter and conformance-v2 proof, keep LaTeX semantic and PDF page/visual authority distinct, require digest and timed-outline review, preserve internal provenance before visible citations, and keep OCR and cloud extraction out of the first slice.
 - Use ADR 0018 for the implemented rich slide-family and layout-library baseline, and ADR 0005 when maintaining generated layout-definition workflows.
 - Keep new deck-planning modes tied to shared deck-context patches when they change narrative direction, theme, constraints, or other deck-level decisions.
 - Keep future hypermedia knowledge-memory work aligned with ADR 0061 and ADR 0062: build on the implemented presentation-scoped typed resources, bounded retrieval, Memory drawer, dedicated Memory page, check-report findings, and lineage records before adding restore/merge/link controls, memory-derived outline proposals, dependency-aware edit review, knowledge-pack import/export, or cross-presentation/workspace-level memory.
@@ -133,13 +133,13 @@ The browser studio baseline is complete.
 
 ## Phase Snapshot
 
-| Phase | Status | Outcome |
-| --- | --- | --- |
-| 1. Studio Shell And Runtime Bridge | complete | Local browser studio shell and server bridge exist. |
-| 2. Preview And Status Pipeline | complete | Preview, build, and validation feedback run through the studio. |
-| 3. Persistent Context Model | complete | Deck and slide context persist in repo-local state. |
-| 4. Structured Workflow Operations | complete | Slide, wording, theme, structure, and deck workflows run through guarded actions. |
-| 5. Slide Variant System | complete | Variants are persistent, previewable, comparable, and safely applicable. |
-| 6. File Editing Boundary | complete | Studio writes are centralized and constrained to approved paths. |
-| 7. Validation And Diff UX | complete | Validation and compare surfaces show structured summaries and decision cues. |
-| 8. First End-To-End Milestone | complete | The original edit, ideate, preview, apply, and validate slice is complete. |
+| Phase                              | Status   | Outcome                                                                           |
+| ---------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| 1. Studio Shell And Runtime Bridge | complete | Local browser studio shell and server bridge exist.                               |
+| 2. Preview And Status Pipeline     | complete | Preview, build, and validation feedback run through the studio.                   |
+| 3. Persistent Context Model        | complete | Deck and slide context persist in repo-local state.                               |
+| 4. Structured Workflow Operations  | complete | Slide, wording, theme, structure, and deck workflows run through guarded actions. |
+| 5. Slide Variant System            | complete | Variants are persistent, previewable, comparable, and safely applicable.          |
+| 6. File Editing Boundary           | complete | Studio writes are centralized and constrained to approved paths.                  |
+| 7. Validation And Diff UX          | complete | Validation and compare surfaces show structured summaries and decision cues.      |
+| 8. First End-To-End Milestone      | complete | The original edit, ideate, preview, apply, and validate slice is complete.        |

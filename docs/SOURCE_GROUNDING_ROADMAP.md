@@ -75,7 +75,7 @@ This document tracks the next practical steps for combining Slideotter's determi
    - Treat LaTeX as semantic authority and PDF as page and visual authority while grouping both representations as one paper.
    - Preview structure, bibliography, figures, extraction warnings, and fingerprints before confirmation writes presentation sources or materials.
    - Preserve original-source ranges, PDF pages, figure origins, and independent artifact fingerprints in chunks and diagnostics.
-   - Reuse Kirjolab's bounded pure TypeScript importer and tests through a Slideotter-specific adapter without importing its Cloudflare application runtime.
+   - Consume the pinned private `@kirjolab/paper-import@0.1.0` package through a Slideotter-specific adapter, prove it with the separate conformance-v2 export, and keep Kirjolab's Cloudflare application runtime outside the dependency boundary.
 
 10. **Timed Paper-To-Presentation Creation**
     - Status: proposed in ADR 0065.

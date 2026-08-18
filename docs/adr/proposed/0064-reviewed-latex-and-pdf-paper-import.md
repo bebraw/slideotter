@@ -26,12 +26,13 @@ author approves an outline, there may be no presentation id. Paper artifacts
 therefore need draft-scoped review first and presentation-scoped persistence
 only after the deck exists.
 
-Kirjolab already contains a bounded, non-executing LaTeX archive inspector and
-converter, PDF.js extraction contracts, stable diagnostics, and a digest-bound
-preview/confirm workflow. Reusing those pure TypeScript ideas and tests can
-avoid rebuilding the riskiest parts of the importer, but Slideotter should not
-depend on Kirjolab's Cloudflare Worker, R2, Durable Object, queue, browser, or
-writing-workspace layers.
+Kirjolab now builds a private `@kirjolab/paper-import` package candidate with a
+bounded, non-executing LaTeX archive inspector, neutral semantic and prose
+provenance, canonical preview identity, PDF.js extraction contracts, stable
+diagnostics, and a separate conformance export. Consuming that reviewed package
+avoids rebuilding the riskiest parts of the importer while keeping Kirjolab's
+Cloudflare Worker, R2, Durable Object, queue, browser, and writing-workspace
+layers outside Slideotter.
 
 ## Decision Direction
 
@@ -175,11 +176,14 @@ trace the figure back to the paper.
   preview, diagnostic, and confirmation contracts.
 
 `previewDigest` must bind the complete reviewed interpretation, not only the
-uploaded bytes. Compute it over a canonical representation of the source and
-PDF fingerprints, selected root, selected bibliography, import options,
-converter and schema versions, and conversion manifest. Confirmation with the
-same ZIP but a different root, bibliography, option set, or converter version
-must be rejected as stale.
+uploaded bytes. Use the package's canonical LaTeX preview identity for the
+archive, selected root, selected bibliography, effective import options,
+converter and schema versions, archive manifest, and neutral conversion
+manifest. Wrap that identity in a Slideotter-owned paper preview digest that
+also binds the rendered-PDF fingerprint, PDF extraction version and options,
+and reconciliation result. Confirmation with the same ZIP but a different
+root, bibliography, option set, converter output, PDF, or extraction result must
+be rejected as stale.
 
 ## LaTeX Safety Rules
 
@@ -231,32 +235,59 @@ Paper text is untrusted data even when the author supplied it.
 
 ## Kirjolab Reuse Boundary
 
-The first implementation should port or adapt Kirjolab's pure TypeScript LaTeX
-archive inspector, converter helpers, path normalization, PDF extraction
-contracts, and trust-boundary tests from a recorded source revision.
+Consume the private `@kirjolab/paper-import@0.1.0` ESM package candidate rather
+than porting or copying Kirjolab source. The integration audit validated the
+package at merged Kirjolab revision
+[`d676076d`](https://github.com/bebraw/kirjolab/commit/d676076dcb32c1cdeb0dbfefaf88dc3dbe186ad0)
+and [PR 7](https://github.com/bebraw/kirjolab/pull/7). The candidate exposes a
+production entry and a separate `./conformance` entry, emits TypeScript
+declarations, has `fflate` as its only mandatory runtime dependency, and keeps
+PDF.js consumer-owned and runtime-injected. Its reproducible tarball and
+isolated Node 24 consumer test passed during the Slideotter integration audit.
 
-The feasibility review used Kirjolab revision
-[`c5a64eb`](https://github.com/bebraw/kirjolab/tree/c5a64eb0e62329d10fe5cdd3220c0979e380a65d),
-including its bounded
-[`latex-import.ts`](https://github.com/bebraw/kirjolab/blob/c5a64eb0e62329d10fe5cdd3220c0979e380a65d/src/domain/manuscript/latex-import.ts)
-and
-[`latex-converter.ts`](https://github.com/bebraw/kirjolab/blob/c5a64eb0e62329d10fe5cdd3220c0979e380a65d/src/domain/manuscript/latex-converter.ts).
-Implementation should record the exact later revision actually reused.
+The earlier feasibility review of revision
+[`c5a64eb`](https://github.com/bebraw/kirjolab/tree/c5a64eb0e62329d10fe5cdd3220c0979e380a65d)
+remains historical context only. It is not the implementation source boundary.
 
-- Retain the MIT notice for substantial copied code.
+- Pin the reviewed package version, source revision, tarball integrity, and MIT
+  license record. Do not copy its trust-boundary code or import from a sibling
+  Kirjolab application checkout.
+- Establish a reproducible artifact location usable by local development,
+  `npm ci`, CI, and packaged builds before merging the adapter. A developer-only
+  `file:../kirjolab` dependency is not an acceptable persistent boundary.
+- Use the package production export for runtime code and
+  `@kirjolab/paper-import/conformance` only in adapter tests.
+- Treat conversion schema 2, `latex-converter-v2`, semantic inventories, exact
+  UTF-16 prose blocks, source fingerprints, and figure provenance as the
+  neutral adapter inputs.
+- Treat each prose block's original `source` and `range` as provenance authority
+  and its normalized `text` only as a retrieval convenience. Before enabling
+  list-item retrieval, require an upstream fix and conformance fixture proving
+  that nested figure, table, code, and math environments cannot leak into that
+  normalized text.
+- Map package `start`/`end` ranges into Slideotter locators and join the matching
+  source fingerprint so persisted ranges retain `sourceSha256`.
+- Do not treat converted files as neutral Markdown. They are explicitly marked
+  `scholarmark-v1`; Slideotter grounding should use the semantic inventories and
+  exact prose blocks instead.
+- Use `createLatexPreviewIdentity` and `digestLatexPreviewIdentity` rather than
+  recreating Kirjolab's canonical hashing rules. Compose the resulting digest
+  with Slideotter's PDF identity at the paper-preview boundary.
+- Inspect the archive, convert it, and construct its identity from the same
+  bounded byte pipeline. Do not accept independently supplied archive, file,
+  and conversion objects as if their relationship were already verified, and
+  rerun the complete pipeline during confirmation.
+- Treat package results as in-process adapter inputs. Validate Slideotter's
+  normalized preview, chunk, locator, diagnostic, and persisted source records
+  at their own unknown-data boundaries.
+- Keep the filesystem, artifact lifecycle, PDF.js runtime adapter, timeout and
+  memory isolation, browser UI, cloud storage, OCR, and model policy in
+  Slideotter-owned adapters.
 - Keep Kirjolab workspace, Cloudflare, Durable Object, R2, queue, browser UI,
-  OCR, annotation, and collaboration dependencies outside Slideotter core.
-- Adapt the converter's outer result to `PaperImportPreview`, section chunks,
-  bibliography records, and figure candidates rather than Kirjolab project
-  seeds.
-- Correct selection-bound preview hashing, original-source range mapping, and
-  figure-origin metadata before treating the reused contract as stable.
-- Keep host-specific filesystem, PDF.js, browser, and cloud adapters outside the
-  pure inspection and conversion modules.
-- Do not make Slideotter runtime depend on a Kirjolab application checkout.
-- A neutral shared package may replace the source-local port after both products
-  agree on a versioned contract and maintenance/release ownership. Packaging is
-  not required to prove the first Slideotter workflow.
+  annotation, and collaboration dependencies outside Slideotter core.
+- The package candidate currently documents Node `24.15.0` on macOS as its
+  supported runtime. Test the adapter on that runtime and in Slideotter's Linux
+  CI, and do not broaden the claim without upstream compatibility evidence.
 
 ## Relationship To Existing ADRs
 
@@ -293,10 +324,16 @@ authors may later promote reviewed claims or evidence into memory explicitly.
 
 ## Implementation Plan
 
-1. Port the bounded LaTeX archive inspector, path helpers, diagnostics, and
-   trust-boundary tests from Kirjolab with recorded provenance.
-2. Adapt the LaTeX converter to emit neutral paper sections, bibliography
-   records, figure candidates, source locators, and a conversion report.
+1. Prove the package boundary without changing Studio state or UI: pin the
+   reviewed `@kirjolab/paper-import@0.1.0` tarball and integrity, add a thin
+   topic-neutral adapter, inject the existing PDF.js runtime with explicit byte,
+   page, page-text, and document-text limits, and run the package's
+   conformance-v2 fixtures through Slideotter's test runner on macOS and Linux
+   CI.
+2. Normalize conversion schema 2 into Slideotter-owned paper types: map exact
+   prose blocks into locator-rich chunks, map section and citation inventories,
+   derive source hashes from source fingerprints, preserve complete figure
+   provenance, and compose the LaTeX and PDF identities into one preview digest.
 3. Add raw draft-artifact upload with byte limits, safe filenames, signatures,
    SHA-256 fingerprints, cleanup, and typed metadata.
 4. Add local PDF.js page-text extraction and diagnostic reporting without OCR.
@@ -324,6 +361,12 @@ Coverage should include:
 - confirmation with matching and stale artifact fingerprints
 - confirmation rejecting root, bibliography, option, schema, or converter drift
   even when archive bytes are unchanged
+- package installation, runtime exports, declarations, and conformance-v2
+  behavior from the pinned tarball without a Kirjolab application checkout
+- the production adapter remaining independent of the conformance export and
+  never treating `scholarmark-v1` as neutral Markdown
+- list-item retrieval text excluding nested figure, table, code, and math
+  environments while preserving the exact original source range
 - diagnostics and figure candidates resolving to exact original-source ranges
   using the declared offset unit
 - no canonical writes when preview or confirmation validation fails
@@ -356,5 +399,9 @@ Coverage should include:
 - Which source and PDF limits should be user-configurable in local app mode?
 - Should confirmed raw artifacts be included in normal presentation bundles by
   default or only in an explicit reproducibility export?
-- When should the reused importer become a separately versioned neutral package
-  shared with Kirjolab?
+- Which non-registry artifact location should provide the reviewed private
+  package tarball to local development, `npm ci`, CI, and packaged builds while
+  preserving version, source revision, integrity, and license provenance?
+- Should Slideotter pin its supported Node 24 runtime to the package candidate's
+  exact `24.15.0` macOS evidence, or should Kirjolab broaden and document the
+  Node and Linux runtime matrix after compatibility testing?
