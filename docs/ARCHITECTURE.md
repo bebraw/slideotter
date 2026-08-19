@@ -168,6 +168,7 @@ Current client maintenance direction:
 | LLM provider configuration, prompts, schemas | `/studio/server/services/llm/` |
 | Local Codex OpenAI-compatible gateway | `/studio/server/services/llm/codex-gateway.ts`, `/scripts/run-codex-gateway.ts`, `/bin/slideotter.mjs` |
 | Sources and retrieval | `/studio/server/services/sources.ts` |
+| Dormant reviewed paper-import package and PDF.js boundary | `/studio/server/services/paper-import/` |
 | Hypermedia memory and derived-slideset lineage | `/studio/server/services/memory.ts` |
 | Materials and image imports | `/studio/server/services/materials.ts`, `/studio/server/services/image-search.ts` |
 | Variant storage | `/studio/server/services/variants.ts` |
@@ -181,6 +182,13 @@ Current client maintenance direction:
 | Cloud hosting storage contracts | `/studio/server/services/cloud-hosting.ts` |
 | Generation diagnostics | `/studio/server/services/generation-diagnostics.ts` |
 
+`/studio/server/services/paper-import/` is the state-free first slice of ADR
+0064. It pins the reviewed Kirjolab package boundary, owns fixed LaTeX and PDF
+limits, runs archive inspection, conversion, and preview identity from the same
+bytes, injects Slideotter's PDF.js runtime, and quarantines prose with uncertain
+provenance from retrieval. It has no HTTP route, presentation write, client,
+cloud, or Electron activation yet.
+
 ### Docs, Tests, And Fixtures
 
 | Need | Primary location |
@@ -193,7 +201,8 @@ Current client maintenance direction:
 | Browser layout fixture | `/scripts/validate-studio-layout.ts` |
 | Client fixture/dead-code checks | `/scripts/validate-client-fixture.ts`, `/scripts/validate-dead-code.ts` |
 | Explicit `any` guard | `/scripts/check-explicit-any.ts` |
-| High-risk service tests | `/tests/high-risk-services.test.ts` |
+| High-risk service coverage | `/scripts/check-service-coverage.ts` |
+| Paper-import adapter boundary | `/tests/paper-import-adapter.test.ts` |
 | Hypermedia tests | `/tests/hypermedia-api.test.ts` |
 | Layout definition tests | `/tests/layout-definitions.test.ts` |
 

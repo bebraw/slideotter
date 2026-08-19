@@ -10,6 +10,8 @@ const targetFiles = [
   "studio/server/services/deck-length.ts",
   "studio/server/services/slides.ts",
   "studio/server/services/materials.ts",
+  "studio/server/services/paper-import/kirjolab-adapter.ts",
+  "studio/server/services/paper-import/pdfjs-runtime.ts",
   "studio/server/services/sources.ts",
   "studio/server/services/variants.ts",
   "studio/server/services/write-boundary.ts"

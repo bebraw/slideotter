@@ -10,6 +10,11 @@ For focused coding maps, use:
 
 ## Setup
 
+Development, CI, and Docker currently use Node 24.15.0 with npm 11.12.1. This
+exact pin is intentional: the immutable private Kirjolab paper-import package
+has that engine contract. Run `nvm install && nvm use` before installing
+dependencies. Do not bypass `engine-strict` to use a newer Node 24 minor.
+
 After installing the hard dependencies from the getting-started guide, install project dependencies:
 
 ```bash
@@ -38,13 +43,26 @@ http://127.0.0.1:4173/deck-preview
 
 ## Docker Development
 
-Use Docker when you want the Node 24, native package, and Playwright runtime setup managed by the project:
+Use Docker when you want the exact Node 24.15.0, native package, and Playwright runtime setup managed by the project:
 
 ```bash
 docker compose up --build
 ```
 
 The Compose service runs `npm run studio:start`, exposes the studio on `http://127.0.0.1:4173`, stores app data in the `slideotter_data` volume, and keeps installed packages in the `slideotter_node_modules` volume.
+
+After changing the pinned Node version or dependencies, refresh an existing
+Compose dependency volume without touching presentation data:
+
+```bash
+docker compose run --rm studio npm ci
+```
+
+The first paper-import integration is a server-only, state-free adapter under
+`studio/server/services/paper-import/`. Production code uses only
+`@kirjolab/paper-import`; the package's `/conformance` export is test-only. The
+adapter is not yet connected to Studio uploads, presentation state, cloud
+Workers, or Electron.
 
 For host-local LM Studio, point the provider at Docker's host alias:
 

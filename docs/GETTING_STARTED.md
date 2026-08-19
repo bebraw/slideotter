@@ -6,14 +6,14 @@ This guide covers the tools you need installed and the shortest path to running 
 
 Install these before working with the project:
 
-- Node.js 24 and npm
+- Node.js 24.15.0 with npm 11.12.1
 - Playwright Chromium browser dependencies
 
 The project also uses npm packages with native binaries, including `sharp`, `@napi-rs/canvas`, and Playwright. `npm install` installs the JavaScript dependencies, including the WebAssembly Graphviz renderer used for DOT diagrams, but Playwright may still need its browser runtime installed for your machine.
 
 ## Install Node
 
-Use `nvm` from the repository root so the project reads `.nvmrc` and selects the Node 24 baseline:
+Use `nvm` from the repository root so the project reads `.nvmrc` and selects the exact reviewed runtime:
 
 ```bash
 nvm install
@@ -27,7 +27,11 @@ node --version
 npm --version
 ```
 
-The package engine is pinned to Node 24 (`>=24 <25`), and `.npmrc` enables `engine-strict=true` so npm fails early on the wrong major version. Other version managers can use the same major version, but local development and CI should treat Node 24 as the baseline.
+The package engine is pinned to Node 24.15.0, and `.npmrc` enables
+`engine-strict=true` so npm fails early on a different runtime. The exact pin
+matches the reviewed private paper-import artifact; local development, Docker,
+and CI use the same Node and npm versions until that dependency publishes a
+broader supported range.
 
 ## Install Project Dependencies
 

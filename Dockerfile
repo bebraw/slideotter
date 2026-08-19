@@ -1,4 +1,11 @@
+FROM node:24.15.0-bookworm-slim AS node-runtime
+
 FROM mcr.microsoft.com/playwright:v1.61.1-noble AS dev
+
+COPY --from=node-runtime /usr/local/ /usr/local/
+
+RUN node --version | grep -Fx v24.15.0
+RUN npm --version | grep -Fx 11.12.1
 
 WORKDIR /app
 

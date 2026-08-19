@@ -26,7 +26,7 @@ author approves an outline, there may be no presentation id. Paper artifacts
 therefore need draft-scoped review first and presentation-scoped persistence
 only after the deck exists.
 
-Kirjolab now builds a private `@kirjolab/paper-import` package candidate with a
+Kirjolab now publishes an immutable private `@kirjolab/paper-import` package release with a
 bounded, non-executing LaTeX archive inspector, neutral semantic and prose
 provenance, canonical preview identity, PDF.js extraction contracts, stable
 diagnostics, and a separate conformance export. Consuming that reviewed package
@@ -235,15 +235,20 @@ Paper text is untrusted data even when the author supplied it.
 
 ## Kirjolab Reuse Boundary
 
-Consume the private `@kirjolab/paper-import@0.1.0` ESM package candidate rather
-than porting or copying Kirjolab source. The integration audit validated the
-package at merged Kirjolab revision
-[`d676076d`](https://github.com/bebraw/kirjolab/commit/d676076dcb32c1cdeb0dbfefaf88dc3dbe186ad0)
-and [PR 7](https://github.com/bebraw/kirjolab/pull/7). The candidate exposes a
-production entry and a separate `./conformance` entry, emits TypeScript
-declarations, has `fflate` as its only mandatory runtime dependency, and keeps
-PDF.js consumer-owned and runtime-injected. Its reproducible tarball and
-isolated Node 24 consumer test passed during the Slideotter integration audit.
+Consume the immutable private `@kirjolab/paper-import@0.1.3` ESM release rather
+than porting or copying Kirjolab source. The reviewed release tag resolves to
+[`02f64c94`](https://github.com/bebraw/kirjolab/commit/02f64c94c481696566397fb70d235bf92266c9c9),
+and the identical tree was merged as
+[`d4d1f0c9`](https://github.com/bebraw/kirjolab/commit/d4d1f0c9)
+through [PR 11](https://github.com/bebraw/kirjolab/pull/11). The immutable
+[release asset](https://github.com/bebraw/kirjolab/releases/download/paper-import-v0.1.3/kirjolab-paper-import-0.1.3.tgz)
+is 56,290 bytes with SHA-256
+`87ade7ecc1411bb1019c54b7f728f4b0c5382fd4dc5510eb411a2a503e56566a`.
+It exposes a production entry and a separate `./conformance` entry, emits
+TypeScript declarations, has `fflate` as its only mandatory runtime dependency,
+and keeps PDF.js consumer-owned and runtime-injected. Its reproducible tarball,
+Node 24.15.0/npm 11.12.1 consumer, and Slideotter Linux-compatible adapter tests
+form the current evidence boundary.
 
 The earlier feasibility review of revision
 [`c5a64eb`](https://github.com/bebraw/kirjolab/tree/c5a64eb0e62329d10fe5cdd3220c0979e380a65d)
@@ -252,19 +257,20 @@ remains historical context only. It is not the implementation source boundary.
 - Pin the reviewed package version, source revision, tarball integrity, and MIT
   license record. Do not copy its trust-boundary code or import from a sibling
   Kirjolab application checkout.
-- Establish a reproducible artifact location usable by local development,
-  `npm ci`, CI, and packaged builds before merging the adapter. A developer-only
-  `file:../kirjolab` dependency is not an acceptable persistent boundary.
+- Use the immutable GitHub release URL and lockfile SRI for local development,
+  `npm ci`, CI, and packaged builds. A developer-only `file:../kirjolab`
+  dependency is not an acceptable persistent boundary.
 - Use the package production export for runtime code and
   `@kirjolab/paper-import/conformance` only in adapter tests.
-- Treat conversion schema 2, `latex-converter-v2`, semantic inventories, exact
+- Treat conversion schema 2, `latex-converter-v6`, semantic inventories, exact
   UTF-16 prose blocks, source fingerprints, and figure provenance as the
   neutral adapter inputs.
 - Treat each prose block's original `source` and `range` as provenance authority
-  and its normalized `text` only as a retrieval convenience. Before enabling
-  list-item retrieval, require an upstream fix and conformance fixture proving
-  that nested figure, table, code, and math environments cannot leak into that
-  normalized text.
+  and its normalized `text` only as a retrieval convenience. Package diagnostics
+  with code `prose-provenance-unavailable` are a retrieval quarantine signal:
+  quarantine overlapping same-file blocks, and quarantine all prose when the
+  diagnostic is unranged or cannot be associated safely. Preserve the original
+  source and diagnostic for review; never repair or reparse TeX downstream.
 - Map package `start`/`end` ranges into Slideotter locators and join the matching
   source fingerprint so persisted ranges retain `sourceSha256`.
 - Do not treat converted files as neutral Markdown. They are explicitly marked
@@ -285,9 +291,19 @@ remains historical context only. It is not the implementation source boundary.
   Slideotter-owned adapters.
 - Keep Kirjolab workspace, Cloudflare, Durable Object, R2, queue, browser UI,
   annotation, and collaboration dependencies outside Slideotter core.
-- The package candidate currently documents Node `24.15.0` on macOS as its
-  supported runtime. Test the adapter on that runtime and in Slideotter's Linux
-  CI, and do not broaden the claim without upstream compatibility evidence.
+- The package release currently requires exact Node `24.15.0`. Slideotter pins
+  local development, CI, and Docker to that runtime. The adapter remains dormant
+  in Electron, whose bundled Node is newer, until a dedicated Electron
+  conformance smoke or a broader upstream engine contract provides evidence.
+
+Version 0.1.3 has one known conservative-analysis error: an include inside the
+ordinary group following zero-argument `\noindent`, as in
+`\noindent{Lead \input{child} tail.}`, is treated as though the group were a
+command argument. The child prose is omitted and the parent receives an exact
+`prose-provenance-unavailable` diagnostic. The generic quarantine above keeps
+that affected block out of retrieval without teaching Slideotter TeX arity.
+Upgrade the package and its conformance proof when Kirjolab corrects the
+classifier.
 
 ## Relationship To Existing ADRs
 
@@ -324,21 +340,23 @@ authors may later promote reviewed claims or evidence into memory explicitly.
 
 ## Implementation Plan
 
-1. Prove the package boundary without changing Studio state or UI: pin the
-   reviewed `@kirjolab/paper-import@0.1.0` tarball and integrity, add a thin
-   topic-neutral adapter, inject the existing PDF.js runtime with explicit byte,
-   page, page-text, and document-text limits, and run the package's
-   conformance-v2 fixtures through Slideotter's test runner on macOS and Linux
-   CI.
+1. **Complete — package boundary.** The immutable
+   `@kirjolab/paper-import@0.1.3` release and integrity are pinned; a thin,
+   state-free adapter owns fixed LaTeX/PDF limits, runs inspect-convert-identity
+   from one byte copy, injects the existing PDF.js runtime, quarantines uncertain
+   prose, and exercises conformance-v2 through Slideotter's test runner without
+   changing Studio state or UI.
 2. Normalize conversion schema 2 into Slideotter-owned paper types: map exact
    prose blocks into locator-rich chunks, map section and citation inventories,
    derive source hashes from source fingerprints, preserve complete figure
    provenance, and compose the LaTeX and PDF identities into one preview digest.
 3. Add raw draft-artifact upload with byte limits, safe filenames, signatures,
    SHA-256 fingerprints, cleanup, and typed metadata.
-4. Add local PDF.js page-text extraction and diagnostic reporting without OCR.
-5. Add a non-mutating preview resource that reconciles the selected LaTeX root,
-   bibliography, figures, and rendered PDF.
+4. Connect the proven local PDF.js extractor to draft artifacts, surfacing
+   page-bounded diagnostics without OCR.
+5. Add a non-mutating preview resource that consumes those extraction results
+   and reconciles the selected LaTeX root, bibliography, figures, and rendered
+   PDF.
 6. Add digest-bound confirmation that persists separate paper source records
    and selected figure materials only after validation succeeds.
 7. Expose paper preview cards and warnings in Brief and Outline without
@@ -399,9 +417,3 @@ Coverage should include:
 - Which source and PDF limits should be user-configurable in local app mode?
 - Should confirmed raw artifacts be included in normal presentation bundles by
   default or only in an explicit reproducibility export?
-- Which non-registry artifact location should provide the reviewed private
-  package tarball to local development, `npm ci`, CI, and packaged builds while
-  preserving version, source revision, integrity, and license provenance?
-- Should Slideotter pin its supported Node 24 runtime to the package candidate's
-  exact `24.15.0` macOS evidence, or should Kirjolab broaden and document the
-  Node and Linux runtime matrix after compatibility testing?

@@ -70,12 +70,12 @@ This document tracks the next practical steps for combining Slideotter's determi
    - Imported images retain provider, creator, license, license URL, and source URL metadata when available, and generated slide media captions include the source/credit line.
 
 9. **Reviewed Paper Import**
-   - Status: proposed in ADR 0064.
+   - Status: package/adapter boundary implemented; reviewed workflow proposed in ADR 0064.
    - Accept a bounded LaTeX source archive and rendered PDF through raw file upload rather than base64 JSON.
    - Treat LaTeX as semantic authority and PDF as page and visual authority while grouping both representations as one paper.
    - Preview structure, bibliography, figures, extraction warnings, and fingerprints before confirmation writes presentation sources or materials.
    - Preserve original-source ranges, PDF pages, figure origins, and independent artifact fingerprints in chunks and diagnostics.
-   - Consume the pinned private `@kirjolab/paper-import@0.1.0` package through a Slideotter-specific adapter, prove it with the separate conformance-v2 export, and keep Kirjolab's Cloudflare application runtime outside the dependency boundary.
+   - The immutable private `@kirjolab/paper-import@0.1.3` release is pinned behind a state-free Slideotter adapter, with fixed extraction limits, a consumer-owned PDF.js runtime, conservative provenance quarantine, and a separate conformance-v2 proof. Kirjolab's Cloudflare application runtime remains outside the dependency boundary.
 
 10. **Timed Paper-To-Presentation Creation**
     - Status: proposed in ADR 0065.
